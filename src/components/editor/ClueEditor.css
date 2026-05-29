@@ -1,0 +1,32 @@
+.clue-editor-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 90;
+  padding: 48px 24px;
+  overflow: auto;
+}
+
+.clue-editor {
+  max-width: 520px;
+}
+
+.clue-editor-subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.media-fieldset {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px 4px;
+  margin: 0;
+}
+
+.media-fieldset legend {
+  padding: 0 4px;
+}

@@ -1,0 +1,178 @@
+.board-grid-editor {
+  flex: 1;
+  min-width: 0;
+}
+
+.board-grid-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.board-grid-meta {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.board-grid-categories {
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols, 6), minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.category-header {
+  position: relative;
+  background: #1e3a8a;
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  display: flex;
+  align-items: stretch;
+}
+
+.category-name-input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: center;
+  padding: 12px 28px 12px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.category-name-input:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: -2px;
+}
+
+.category-remove-btn {
+  position: absolute;
+  top: 6px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.category-remove-btn:hover:not(:disabled) {
+  background: rgba(220, 38, 38, 0.85);
+  color: #fff;
+}
+
+.category-remove-btn:disabled {
+  opacity: 0.25;
+  cursor: not-allowed;
+}
+
+.category-remove-btn:focus-visible {
+  outline: 2px solid #93c5fd;
+  outline-offset: 1px;
+}
+
+.board-grid-clues {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.board-grid-row {
+  display: grid;
+  grid-template-columns: repeat(var(--board-cols, 6), minmax(0, 1fr));
+  gap: 10px;
+}
+
+.clue-tile {
+  position: relative;
+  min-height: 88px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow);
+}
+
+.clue-tile:hover {
+  border-color: #93c5fd;
+}
+
+.clue-tile-selected {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.clue-tile-empty .clue-tile-value {
+  margin-bottom: 4px;
+}
+
+.clue-tile-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1;
+}
+
+.clue-tile-add {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.clue-tile-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: var(--color-success);
+  display: flex;
+}
+
+.clue-tile-dd {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 10px;
+  padding: 2px 5px;
+}
+
+.clue-tile-check + .clue-tile-dd,
+.clue-tile:has(.clue-tile-check) .clue-tile-dd {
+  right: 28px;
+}
+
+.clue-tile-media {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  color: var(--color-primary);
+  display: flex;
+}
+
+@media (max-width: 900px) {
+  .category-name-input {
+    font-size: 12px;
+    padding-right: 26px;
+  }
+
+  .clue-tile-value {
+    font-size: 22px;
+  }
+}

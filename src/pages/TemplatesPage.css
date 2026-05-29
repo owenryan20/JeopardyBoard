@@ -1,0 +1,47 @@
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.template-card {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: none;
+}
+
+.template-card-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.template-card-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.template-card-desc {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  flex: 1;
+}
+
+.template-card-meta {
+  margin: 0 0 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.template-categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.template-use-btn {
+  width: 100%;
+}
