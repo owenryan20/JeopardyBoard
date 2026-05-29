@@ -21,16 +21,27 @@ Deploy the `dist/` folder to GitHub Pages or any static host.
 
 ## GitHub Pages
 
-This repo includes a GitHub Actions workflow (`.github/workflows/deploy-pages.yml`) that builds and deploys on every push to `main`.
+Live site: **https://owenryan20.github.io/JeopardyBoard/**
+
+This repo deploys via GitHub Actions (`.github/workflows/deploy.yml`) on every push to `development`.
 
 **One-time setup:**
 
-1. Push to GitHub
+1. Push the `development` branch to GitHub
 2. Go to **Settings → Pages**
 3. Under **Build and deployment**, set **Source** to **GitHub Actions**
-4. After the workflow runs, the site will be at `https://<username>.github.io/JeopardyBoard/`
+4. After the workflow completes, open https://owenryan20.github.io/JeopardyBoard/
 
-The build uses base path `/JeopardyBoard/` automatically. For a custom domain or user site (`username.github.io`), update `repoBase` in `vite.config.ts`.
+Production builds use base path `/JeopardyBoard/` (see `vite.config.ts`). Local dev uses `/` at http://localhost:5173.
+
+**Test a production build locally:**
+
+```bash
+npm run build
+npm run preview:pages
+```
+
+Then open the URL shown (paths will be under `/JeopardyBoard/`).
 
 ## Features
 
