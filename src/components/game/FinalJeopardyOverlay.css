@@ -1,0 +1,103 @@
+.final-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 12px 0;
+}
+
+.final-wager-form,
+.final-outcome-form {
+  text-align: left;
+  margin: 16px 0;
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+.final-wager-row,
+.final-outcome-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  flex-wrap: wrap;
+}
+
+.final-wager-team {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 140px;
+}
+
+.final-wager-name {
+  font-weight: 600;
+}
+
+.final-wager-score,
+.final-wager-max {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.final-wager-input {
+  width: 100px;
+  flex-shrink: 0;
+}
+
+.final-wager-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin: 16px 0;
+  font-size: 14px;
+}
+
+.final-outcome-buttons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.final-outcome-selected {
+  outline: 2px solid var(--game-gold);
+  background: rgba(251, 191, 36, 0.2) !important;
+}
+
+.final-wager-badge {
+  color: var(--game-gold);
+  font-size: 13px;
+}
+
+.final-standings {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  text-align: left;
+}
+
+.final-standings li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 18px;
+}
+
+.final-rank {
+  color: var(--game-gold);
+  font-weight: 700;
+  min-width: 24px;
+}
+
+.final-standings .game-value {
+  margin-left: auto;
+  font-size: 22px;
+}
+
+.final-close-btn {
+  margin-top: 16px;
+}

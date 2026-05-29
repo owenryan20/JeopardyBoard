@@ -1,0 +1,55 @@
+.board-card {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.board-card-thumb {
+  height: 100px;
+  background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+  padding: 12px;
+}
+
+.board-card-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  height: 100%;
+}
+
+.board-card-mini-col {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.board-card-body {
+  padding: 14px 16px 16px;
+}
+
+.board-card-title {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.board-card-meta,
+.board-card-date {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.board-card-date {
+  margin-top: 2px;
+  margin-bottom: 12px;
+}
+
+.board-card-actions {
+  display: flex;
+  gap: 4px;
+}
