@@ -171,6 +171,7 @@ function createClueFromTemplate(
   const sample = template.sampleClues?.[clueKey(categoryIndex, value)];
   return {
     id: createId(),
+    type: 'clue',
     value,
     clue: sample?.clue ?? '',
     answer: sample?.answer ?? '',
@@ -203,6 +204,7 @@ export function createBoardFromTemplate(template: BoardTemplate, title?: string)
     categories: Array.from({ length: CATEGORY_COUNT }, (_, i) =>
       createCategoryFromTemplate(i, template),
     ),
+    datasets: [],
     finalJeopardy: template.finalJeopardy ?? { category: '', clue: '', answer: '' },
     createdAt: now,
     updatedAt: now,

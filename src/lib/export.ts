@@ -1,8 +1,9 @@
 import type { Board } from '../types/board';
 import { formatPeso } from './currency';
+import { syncBoardDatasetsForExport } from './datasetStorage';
 
 export function boardToJson(board: Board): string {
-  return JSON.stringify(board, null, 2);
+  return JSON.stringify(syncBoardDatasetsForExport(board), null, 2);
 }
 
 export function downloadFile(content: string, filename: string, mimeType: string): void {

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FinalJeopardyOverlay } from '../components/game/FinalJeopardyOverlay';
-import type { Board, GameSession, Team } from '../types/board';
+import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
+import type { Board, GameSession, MiniGameProgress, Team } from '../types/board';
+import { isMiniGameTile } from '../types/board';
 import { formatPeso } from '../lib/currency';
 import { createId } from '../lib/ids';
 import { findClue } from '../lib/boardFactory';
@@ -24,6 +26,13 @@ const TEAM_COLORS = [
 const TEAM_COUNT_OPTIONS = Array.from({ length: 9 }, (_, i) => i + 2);
 
 type TeamClueScore = 'add' | 'subtract';
+
+const defaultMiniGameProgress = (): MiniGameProgress => ({
+  guesses: [],
+  revealed: false,
+  won: null,
+  finished: false,
+});
 
 export function GamePage() {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +78,8 @@ export function GamePage() {
   const activeClue =
     revealed && findClue(board, revealed.categoryId, revealed.clueId);
 
+  const isMiniGame = activeClue && isMiniGameTile(activeClue.clue);
+
   const markClueUsed = () => {
     if (!revealed) return;
     const updated: Board = {
@@ -88,6 +99,22 @@ export function GamePage() {
     upsertBoard(updated);
     setRevealed(null);
     setShowAnswer(false);
+  };
+
+  const closeOverlay = () => {
+    setRevealed(null);
+    setShowAnswer(false);
+  };
+
+  const updateMiniGameProgress = (clueId: string, progress: MiniGameProgress) => {
+    setSession((s) =>
+      s
+        ? {
+            ...s,
+            miniGameProgress: { ...s.miniGameProgress, [clueId]: progress },
+          }
+        : s,
+    );
   };
 
   const updateTeamScore = (teamId: string, delta: number) => {
@@ -229,7 +256,25 @@ export function GamePage() {
         onTeamCountChange={resizeTeams}
       />
 
-      {activeClue && (
+      {activeClue && isMiniGame && (
+        <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
+          <CharacterGuessPanel
+            board={board}
+            categoryName={activeClue.category.name}
+            clue={activeClue.clue}
+            mode="game"
+            progress={session.miniGameProgress[activeClue.clue.id] ?? defaultMiniGameProgress()}
+            onProgressChange={(p) => updateMiniGameProgress(activeClue.clue.id, p)}
+            teams={session.teams}
+            teamScoreSelections={clueScoring[activeClue.clue.id] ?? {}}
+            onTeamScore={(teamId, delta) => toggleClueScore(activeClue.clue.id, teamId, delta)}
+            onBackToBoard={closeOverlay}
+            onMarkUsed={markClueUsed}
+          />
+        </div>
+      )}
+
+      {activeClue && !isMiniGame && (
         <ClueOverlay
           categoryName={activeClue.category.name}
           clue={activeClue.clue}
@@ -237,10 +282,7 @@ export function GamePage() {
           teamScoreSelections={
             revealed ? (clueScoring[revealed.clueId] ?? {}) : {}
           }
-          onClose={() => {
-            setRevealed(null);
-            setShowAnswer(false);
-          }}
+          onClose={closeOverlay}
           onShowAnswer={() => setShowAnswer(true)}
           onMarkUsed={markClueUsed}
           teams={session.teams}

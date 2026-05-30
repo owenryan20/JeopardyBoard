@@ -1,0 +1,8 @@
+.datasets-page .empty-state svg {
+  color: #7c3aed;
+  margin-bottom: 8px;
+}
+
+.datasets-helper {
+  margin: -8px 0 16px;
+}

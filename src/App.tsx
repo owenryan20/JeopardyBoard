@@ -3,6 +3,8 @@ import { AppShell } from './components/layout/AppShell';
 import { BoardEditorPage } from './pages/BoardEditorPage';
 import { Sidebar } from './components/layout/Sidebar';
 import { DashboardPage } from './pages/DashboardPage';
+import { DatasetBuilderPage } from './pages/DatasetBuilderPage';
+import { DatasetsPage } from './pages/DatasetsPage';
 import { GamePage } from './pages/GamePage';
 import { MyBoardsPage } from './pages/MyBoardsPage';
 import { RecentlyPlayedPage } from './pages/RecentlyPlayedPage';
@@ -16,6 +18,8 @@ export default function App() {
       <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="boards" element={<MyBoardsPage />} />
+        <Route path="datasets" element={<DatasetsPage />} />
+        <Route path="datasets/:id" element={<DatasetBuilderPage />} />
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="recent" element={<RecentlyPlayedPage />} />
         <Route path="settings" element={<PlaceholderPage title="Settings" description="App preferences" />} />

@@ -1,4 +1,8 @@
 import type { Board } from '../types/board';
+import { migrateBoard } from './boardFactory';
+import { boardDatasetToAppDataset } from './datasetConvert';
+import { upsertAppDataset } from './datasetStorage';
+import { migrateClueFromImport } from './miniGame';
 
 export function validateBoardImport(data: unknown): { ok: true; board: Board } | { ok: false; error: string } {
   if (!data || typeof data !== 'object') {
@@ -31,32 +35,39 @@ export function validateBoardImport(data: unknown): { ok: true; board: Board } |
   }
 
   const board = normalizeImportedBoard(data as Board);
+
+  for (const ds of board.datasets ?? []) {
+    upsertAppDataset(boardDatasetToAppDataset(ds, 'custom', 'backup'));
+  }
+
   return { ok: true, board };
 }
 
 function normalizeImportedBoard(raw: Board): Board {
   const now = new Date().toISOString();
-  return {
+  const board: Board = {
     id: raw.id || crypto.randomUUID(),
     title: raw.title || 'Imported Board',
     description: raw.description ?? '',
+    datasets: Array.isArray(raw.datasets)
+      ? raw.datasets.map((d) => ({
+          id: d.id || crypto.randomUUID(),
+          name: d.name || 'Dataset',
+          sourceType: 'csv' as const,
+          columns: Array.isArray(d.columns) ? d.columns : [],
+          rows: Array.isArray(d.rows) ? d.rows : [],
+          createdAt: d.createdAt ?? now,
+          updatedAt: now,
+        }))
+      : [],
     categories: raw.categories.map((cat) => ({
       id: cat.id || crypto.randomUUID(),
       name: cat.name,
-      clues: cat.clues.map((clue) => ({
-        id: clue.id || crypto.randomUUID(),
-        value: clue.value,
-        clue: clue.clue ?? '',
-        answer: clue.answer ?? '',
-        hostNotes: clue.hostNotes ?? '',
-        isDailyDouble: Boolean(clue.isDailyDouble),
-        media: clue.media,
-        tags: Array.isArray(clue.tags) ? clue.tags : [],
-        isUsed: false,
-      })),
+      clues: cat.clues.map((clue) => migrateClueFromImport(clue)),
     })),
     finalJeopardy: raw.finalJeopardy ?? { category: '', clue: '', answer: '' },
     createdAt: raw.createdAt ?? now,
     updatedAt: now,
   };
+  return migrateBoard(board);
 }

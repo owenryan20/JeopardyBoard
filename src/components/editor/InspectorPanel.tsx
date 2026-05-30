@@ -1,9 +1,16 @@
 import { useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, Copy, Download, FileJson, Printer, Upload } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, Eye, FileJson, Pencil, Printer, Upload } from 'lucide-react';
 import type { Board, Clue } from '../../types/board';
+import { isMiniGameTile } from '../../types/board';
 import { formatPeso } from '../../lib/currency';
 import { findClue } from '../../lib/boardFactory';
 import { getBoardReadiness, getClueStatusLabel } from '../../lib/boardStats';
+import {
+  getCorrectAnswerName,
+  getDataset,
+  getMiniGameReadiness,
+  getVisibleComparisonAttributes,
+} from '../../lib/miniGame';
 import {
   copyBoardToClipboard,
   exportBoardBackup,
@@ -19,6 +26,9 @@ interface InspectorPanelProps {
   selectedCategoryId: string | null;
   selectedClueId: string | null;
   teams?: { name: string; score: number; color: string }[];
+  onEditMiniGame?: () => void;
+  onPreviewMiniGame?: () => void;
+  onDuplicateTile?: () => void;
 }
 
 const TEAM_COLORS = ['#3b82f6', '#a855f7', '#14b8a6'];
@@ -28,6 +38,9 @@ export function InspectorPanel({
   selectedCategoryId,
   selectedClueId,
   teams,
+  onEditMiniGame,
+  onPreviewMiniGame,
+  onDuplicateTile,
 }: InspectorPanelProps) {
   const readiness = getBoardReadiness(board);
   const selected =
@@ -105,9 +118,20 @@ export function InspectorPanel({
       </section>
 
       <section className="inspector-section card">
-        <h3>Selected Clue</h3>
+        <h3>{selected && isMiniGameTile(selected.clue) ? 'Selected Tile' : 'Selected Clue'}</h3>
         {selected ? (
-          <SelectedClueDetails categoryName={selected.category.name} clue={selected.clue} />
+          isMiniGameTile(selected.clue) ? (
+            <MiniGameTileDetails
+              board={board}
+              categoryName={selected.category.name}
+              clue={selected.clue}
+              onEdit={onEditMiniGame}
+              onPreview={onPreviewMiniGame}
+              onDuplicate={onDuplicateTile}
+            />
+          ) : (
+            <SelectedClueDetails categoryName={selected.category.name} clue={selected.clue} />
+          )
         ) : (
           <p className="inspector-empty">Select a tile to see details.</p>
         )}
@@ -212,6 +236,102 @@ export function InspectorPanel({
         </div>
       </section>
     </aside>
+  );
+}
+
+function MiniGameTileDetails({
+  board,
+  categoryName,
+  clue,
+  onEdit,
+  onPreview,
+  onDuplicate,
+}: {
+  board: Board;
+  categoryName: string;
+  clue: Clue;
+  onEdit?: () => void;
+  onPreview?: () => void;
+  onDuplicate?: () => void;
+}) {
+  const config = clue.miniGame!;
+  const readiness = getMiniGameReadiness(board, clue);
+  const dataset = getDataset(board, config.datasetId);
+  const visibleAttrs = getVisibleComparisonAttributes(config);
+  const answerName = getCorrectAnswerName(board, clue);
+
+  return (
+    <div className="minigame-inspector">
+      <dl className="selected-clue-dl">
+        <div>
+          <dt>Type</dt>
+          <dd><span className="badge badge-minigame">Mini Game</span></dd>
+        </div>
+        <div>
+          <dt>Game</dt>
+          <dd>Character Guess</dd>
+        </div>
+        <div>
+          <dt>Category</dt>
+          <dd>{categoryName}</dd>
+        </div>
+        <div>
+          <dt>Point Value</dt>
+          <dd>{config.pointValue}</dd>
+        </div>
+        <div>
+          <dt>Dataset</dt>
+          <dd>{dataset?.name ?? (config.datasetId ? 'Missing dataset' : 'None')}</dd>
+        </div>
+        <div>
+          <dt>Correct Answer</dt>
+          <dd>{answerName || '—'}</dd>
+        </div>
+        <div>
+          <dt>Visible Attributes</dt>
+          <dd>{visibleAttrs.length > 0 ? visibleAttrs.map((a) => a.displayName).join(', ') : '—'}</dd>
+        </div>
+        <div>
+          <dt>Guess Limit</dt>
+          <dd>{config.guessLimit}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>
+            <span className={`mg-status-badge mg-status-${readiness.status}`}>
+              {readiness.label}
+            </span>
+          </dd>
+        </div>
+      </dl>
+
+      <ul className="mg-checklist">
+        {readiness.checklist.map((item) => (
+          <li key={item.label} className={item.done ? 'mg-check-done' : ''}>
+            {item.done ? <Check size={14} aria-hidden="true" /> : <span className="mg-check-empty" aria-hidden="true" />}
+            {item.label}
+          </li>
+        ))}
+      </ul>
+
+      <div className="inspector-actions mg-inspector-actions">
+        {onEdit && (
+          <button type="button" className="btn btn-sm btn-primary" onClick={onEdit}>
+            <Pencil size={14} aria-hidden="true" /> Edit Mini Game
+          </button>
+        )}
+        {onPreview && (
+          <button type="button" className="btn btn-sm" onClick={onPreview}>
+            <Eye size={14} aria-hidden="true" /> Preview Mini Game
+          </button>
+        )}
+        {onDuplicate && (
+          <button type="button" className="btn btn-sm" onClick={onDuplicate}>
+            <Copy size={14} aria-hidden="true" /> Duplicate Tile
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 

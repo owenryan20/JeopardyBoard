@@ -20,16 +20,18 @@ export function createDefaultSession(boardId: string): GameSession {
     finalJeopardyRevealed: 'none',
     finalJeopardyWagers: {},
     finalJeopardyOutcomes: {},
+    miniGameProgress: {},
   };
 }
 
-/** Normalize sessions saved before wager support was added. */
+/** Normalize sessions saved before wager / mini game support was added. */
 export function normalizeGameSession(raw: GameSession): GameSession {
   return {
     ...raw,
     finalJeopardyRevealed: raw.finalJeopardyRevealed ?? 'none',
     finalJeopardyWagers: raw.finalJeopardyWagers ?? {},
     finalJeopardyOutcomes: raw.finalJeopardyOutcomes ?? {},
+    miniGameProgress: raw.miniGameProgress ?? {},
   };
 }
 

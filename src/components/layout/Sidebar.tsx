@@ -1,10 +1,11 @@
-import { LayoutDashboard, LayoutGrid, Clock, Settings, Layers } from 'lucide-react';
+import { Database, Layers, LayoutDashboard, LayoutGrid, Clock, Settings } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import './Sidebar.css';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/boards', label: 'My Boards', icon: LayoutGrid },
+  { to: '/datasets', label: 'Datasets', icon: Database },
   { to: '/templates', label: 'Templates', icon: Layers },
   { to: '/recent', label: 'Recently Played', icon: Clock },
   { to: '/settings', label: 'Settings', icon: Settings },

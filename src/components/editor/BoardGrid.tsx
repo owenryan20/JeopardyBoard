@@ -1,8 +1,10 @@
-import { Check, Image, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, Gamepad2, Image, Play, Plus, Trash2 } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { Board, Clue } from '../../types/board';
+import { isMiniGameTile } from '../../types/board';
 import { MAX_CATEGORY_COUNT, MIN_CATEGORY_COUNT } from '../../types/board';
-import { clueStatus } from '../../lib/boardFactory';
+import { clueStatus, isTileEmpty } from '../../lib/boardFactory';
+import { getMiniGameReadiness } from '../../lib/miniGame';
 import './BoardGrid.css';
 
 interface BoardGridProps {
@@ -77,6 +79,7 @@ export function BoardGrid({
               return (
                 <ClueTile
                   key={clue.id}
+                  board={board}
                   clue={clue}
                   selected={selectedClueId === clue.id}
                   onSelect={() => onSelectClue(category.id, clue.id)}
@@ -91,41 +94,64 @@ export function BoardGrid({
 }
 
 function ClueTile({
+  board,
   clue,
   selected,
   onSelect,
 }: {
+  board: Board;
   clue: Clue;
   selected: boolean;
   onSelect: () => void;
 }) {
-  const status = clueStatus(clue);
+  const isMini = isMiniGameTile(clue);
+  const status = clueStatus(clue, board);
   const isComplete = status === 'complete';
-  const isEmpty = status === 'empty';
+  const isEmpty = isTileEmpty(clue, board);
+  const mgReadiness = isMini ? getMiniGameReadiness(board, clue) : null;
 
   return (
     <button
       type="button"
-      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}`}
+      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}${isMini ? ' clue-tile-minigame' : ''}`}
       role="gridcell"
       aria-pressed={selected}
-      aria-label={`${clue.value} point clue${isComplete ? ', completed' : ''}${clue.isDailyDouble ? ', daily double' : ''}`}
+      aria-label={
+        isMini
+          ? `${clue.value} point mini game, Character Guess${isComplete ? ', ready' : ''}`
+          : `${clue.value} point clue${isComplete ? ', completed' : ''}${clue.isDailyDouble ? ', daily double' : ''}`
+      }
       onClick={onSelect}
     >
       {isComplete && (
         <span className="clue-tile-check" aria-hidden="true">
           <Check size={14} />
-          <span className="sr-only">Completed</span>
+          <span className="sr-only">{isMini ? 'Ready' : 'Completed'}</span>
         </span>
       )}
-      {clue.isDailyDouble && (
+      {isMini && (
+        <span className="clue-tile-mg-badge" aria-hidden="true">
+          <Gamepad2 size={12} />
+          <span>Mini Game</span>
+        </span>
+      )}
+      {!isMini && clue.isDailyDouble && (
         <span className="clue-tile-dd badge badge-dd" aria-label="Daily Double">
           DD
         </span>
       )}
       <span className="clue-tile-value">{clue.value}</span>
-      {isEmpty && <span className="clue-tile-add">+ Add clue</span>}
-      {clue.media?.url && (
+      {isMini && clue.miniGame?.title && (
+        <span className="clue-tile-mg-type">Character Guess</span>
+      )}
+      {isEmpty && !isMini && <span className="clue-tile-add">+ Add clue</span>}
+      {isEmpty && isMini && <span className="clue-tile-add">+ Setup mini game</span>}
+      {mgReadiness && !isComplete && !isEmpty && (
+        <span className={`clue-tile-mg-status mg-status-${mgReadiness.status}`}>
+          {mgReadiness.label}
+        </span>
+      )}
+      {!isMini && clue.media?.url && (
         <span className="clue-tile-media" aria-label="Has media attachment">
           {clue.media.type === 'video' ? <Play size={14} /> : <Image size={14} />}
         </span>

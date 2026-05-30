@@ -166,6 +166,54 @@
   display: flex;
 }
 
+.clue-tile-minigame {
+  background: linear-gradient(180deg, #faf5ff 0%, var(--color-surface) 100%);
+  border-color: #ddd6fe;
+}
+
+.clue-tile-minigame:hover {
+  border-color: #a78bfa;
+}
+
+.clue-tile-minigame.clue-tile-selected {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px #ede9fe;
+}
+
+.clue-tile-mg-badge {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 9px;
+  font-weight: 600;
+  color: #7c3aed;
+  background: #ede9fe;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+.clue-tile-mg-type {
+  font-size: 10px;
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.clue-tile-mg-status {
+  font-size: 9px;
+  margin-top: 2px;
+}
+
+.mg-status-ready { color: var(--color-success); }
+.mg-status-setupNeeded { color: var(--color-warning); }
+.mg-status-missingDataset { color: var(--color-danger); }
+
+.clue-tile-minigame .clue-tile-check {
+  color: #7c3aed;
+}
+
 @media (max-width: 900px) {
   .category-name-input {
     font-size: 12px;

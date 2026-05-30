@@ -10,6 +10,7 @@ interface ClueEditorProps {
   onSave: (clue: Clue) => void;
   onCancel: () => void;
   onSaveAndNext: (clue: Clue) => void;
+  onConvertToMiniGame?: () => void;
 }
 
 export function ClueEditor({
@@ -18,6 +19,7 @@ export function ClueEditor({
   onSave,
   onCancel,
   onSaveAndNext,
+  onConvertToMiniGame,
 }: ClueEditorProps) {
   const [draft, setDraft] = useState(clue);
 
@@ -62,6 +64,30 @@ export function ClueEditor({
         </div>
 
         <div className="modal-body">
+          {onConvertToMiniGame && (
+            <div className="field">
+              <label className="label" htmlFor="clue-card-type">Card type</label>
+              <select
+                id="clue-card-type"
+                className="select"
+                value="clue"
+                onChange={(e) => {
+                  if (e.target.value === 'miniGame') {
+                    const hasContent = draft.clue.trim() || draft.answer.trim();
+                    if (hasContent && !window.confirm('Convert this tile to a Mini Game? Existing clue text will be hidden but not deleted.')) {
+                      e.target.value = 'clue';
+                      return;
+                    }
+                    onConvertToMiniGame();
+                  }
+                }}
+              >
+                <option value="clue">Standard Clue</option>
+                <option value="miniGame">Mini Game</option>
+              </select>
+            </div>
+          )}
+
           <div className="field">
             <label className="label" htmlFor="clue-text">
               Clue
