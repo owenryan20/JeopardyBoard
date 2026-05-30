@@ -9,6 +9,7 @@ import {
 } from '../types/board';
 import { isMiniGameTile, isStandardClue } from '../types/board';
 import { migrateBoard, tileEditorStatus } from './miniGame';
+import { hasClueMedia } from './mediaUtils';
 import { createId } from './ids';
 
 export function createEmptyClue(value: number): Clue {
@@ -21,6 +22,15 @@ export function createEmptyClue(value: number): Clue {
     hostNotes: '',
     isDailyDouble: false,
     tags: [],
+    isUsed: false,
+  };
+}
+
+/** Clear a tile back to an empty standard clue while keeping its id and point value. */
+export function resetClueTile(clue: Clue): Clue {
+  return {
+    ...createEmptyClue(clue.value),
+    id: clue.id,
     isUsed: false,
   };
 }
@@ -178,6 +188,15 @@ export function isTileEmpty(clue: Clue, _board?: Board): boolean {
     return !clue.miniGame?.datasetId;
   }
   return isStandardClue(clue) && !clue.clue.trim() && !clue.answer.trim();
+}
+
+export function hasTileContent(clue: Clue, board?: Board): boolean {
+  if (!isTileEmpty(clue, board)) return true;
+  if (hasClueMedia(clue.media)) return true;
+  if (clue.hostNotes.trim()) return true;
+  if (clue.tags.length > 0) return true;
+  if (clue.isDailyDouble) return true;
+  return false;
 }
 
 export { migrateBoard };

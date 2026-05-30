@@ -1,7 +1,19 @@
-import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import type { Clue, MediaType } from '../../types/board';
+import { Upload, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { Clue, Media, MediaType } from '../../types/board';
 import { DEFAULT_POINT_VALUES } from '../../types/board';
+import { hasTileContent } from '../../lib/boardFactory';
+import { ClueMedia } from '../clue/ClueMedia';
+import { deleteMediaIfUnreferenced, isMediaStorageAvailable, saveMediaFile } from '../../lib/mediaStorage';
+import {
+  hasClueMedia,
+  inferMediaTypeFromFilename,
+  inferMediaTypeFromMime,
+  isLocalMedia,
+  normalizeMedia,
+  mediaForSave,
+  validateMediaFile,
+} from '../../lib/mediaUtils';
 import './ClueEditor.css';
 
 interface ClueEditorProps {
@@ -11,6 +23,7 @@ interface ClueEditorProps {
   onCancel: () => void;
   onSaveAndNext: (clue: Clue) => void;
   onConvertToMiniGame?: () => void;
+  onReset?: () => void;
 }
 
 export function ClueEditor({
@@ -20,33 +33,113 @@ export function ClueEditor({
   onCancel,
   onSaveAndNext,
   onConvertToMiniGame,
+  onReset,
 }: ClueEditorProps) {
   const [draft, setDraft] = useState(clue);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setDraft(clue);
+    setUploadError(null);
   }, [clue]);
 
   const update = <K extends keyof Clue>(key: K, value: Clue[K]) => {
     setDraft((prev) => ({ ...prev, [key]: value }));
   };
 
-  const updateMedia = (partial: Partial<NonNullable<Clue['media']>>) => {
+  const updateMedia = (partial: Partial<Media>) => {
     setDraft((prev) => ({
       ...prev,
       media: {
         type: prev.media?.type ?? 'image',
+        storage: prev.media?.storage,
         url: prev.media?.url ?? '',
         filename: prev.media?.filename,
         altText: prev.media?.altText,
+        mediaId: prev.media?.mediaId,
+        mimeType: prev.media?.mimeType,
         ...partial,
       },
     }));
   };
 
-  const clearMedia = () => {
+  const clearMedia = async () => {
+    const previous = draft.media;
     setDraft((prev) => ({ ...prev, media: undefined }));
+    setUploadError(null);
+    if (previous && isLocalMedia(previous) && previous.mediaId) {
+      await deleteMediaIfUnreferenced(previous.mediaId);
+    }
   };
+
+  const handleUrlChange = (url: string) => {
+    setUploadError(null);
+    if (!url.trim()) {
+      void clearMedia();
+      return;
+    }
+    updateMedia({
+      storage: 'url',
+      url: url.trim(),
+      mediaId: undefined,
+      mimeType: undefined,
+    });
+  };
+
+  const handleUpload = async (file: File) => {
+    setUploadError(null);
+    if (!isMediaStorageAvailable()) {
+      setUploadError('File upload is not available in this browser.');
+      return;
+    }
+
+    const expectedType = draft.media?.type ?? 'image';
+    const validationError = validateMediaFile(file, expectedType);
+    if (validationError) {
+      setUploadError(validationError);
+      return;
+    }
+
+    const inferredType =
+      inferMediaTypeFromMime(file.type) ?? inferMediaTypeFromFilename(file.name) ?? expectedType;
+
+    setUploading(true);
+    try {
+      const previous = draft.media;
+      const record = await saveMediaFile(file);
+      setDraft((prev) => ({
+        ...prev,
+        media: normalizeMedia({
+          storage: 'local',
+          type: inferredType,
+          mediaId: record.id,
+          mimeType: record.mimeType,
+          filename: record.filename,
+          altText: prev.media?.altText,
+          url: '',
+        }),
+      }));
+
+      if (previous && isLocalMedia(previous) && previous.mediaId && previous.mediaId !== record.id) {
+        await deleteMediaIfUnreferenced(previous.mediaId);
+      }
+    } catch {
+      setUploadError('Could not save the uploaded file in this browser.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const saveDraft = (next: Clue) => {
+    onSave({
+      ...next,
+      media: mediaForSave(next.media),
+    });
+  };
+
+  const resolvedMedia = normalizeMedia(draft.media);
 
   return (
     <div className="clue-editor-modal" role="dialog" aria-modal="true" aria-labelledby="clue-editor-title">
@@ -188,6 +281,9 @@ export function ClueEditor({
 
           <fieldset className="field media-fieldset">
             <legend className="label">Media</legend>
+            <p className="field-hint media-storage-hint">
+              Uploads are saved in this browser on the host device. Use ZIP export to move boards with media to another computer.
+            </p>
             <div className="field">
               <label className="label" htmlFor="media-type">
                 Type
@@ -203,18 +299,50 @@ export function ClueEditor({
                 <option value="audio">Audio</option>
               </select>
             </div>
+
+            <div className="field">
+              <label className="label" htmlFor="media-upload">
+                Upload file
+              </label>
+              <input
+                ref={fileRef}
+                id="media-upload"
+                type="file"
+                className="sr-only"
+                accept="image/*,audio/*,video/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleUpload(file);
+                  e.target.value = '';
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-sm"
+                disabled={uploading}
+                onClick={() => fileRef.current?.click()}
+              >
+                <Upload size={14} aria-hidden="true" />
+                {uploading ? 'Uploading…' : 'Choose file'}
+              </button>
+              {isLocalMedia(draft.media) && draft.media?.filename && (
+                <p className="field-hint">Stored locally: {draft.media.filename}</p>
+              )}
+            </div>
+
             <div className="field">
               <label className="label" htmlFor="media-url">
-                URL
+                Or paste URL
               </label>
               <input
                 id="media-url"
                 className="input"
                 placeholder="https://..."
-                value={draft.media?.url ?? ''}
-                onChange={(e) => updateMedia({ url: e.target.value })}
+                value={draft.media?.storage === 'url' ? (draft.media.url ?? '') : ''}
+                onChange={(e) => handleUrlChange(e.target.value)}
               />
             </div>
+
             <div className="field">
               <label className="label" htmlFor="media-filename">
                 Filename (optional)
@@ -226,6 +354,7 @@ export function ClueEditor({
                 onChange={(e) => updateMedia({ filename: e.target.value })}
               />
             </div>
+
             <div className="field">
               <label className="label" htmlFor="media-alt">
                 Alt text
@@ -237,8 +366,21 @@ export function ClueEditor({
                 onChange={(e) => updateMedia({ altText: e.target.value })}
               />
             </div>
-            {draft.media?.url && (
-              <button type="button" className="btn btn-sm btn-danger" onClick={clearMedia}>
+
+            {uploadError && (
+              <p role="alert" className="import-error">
+                {uploadError}
+              </p>
+            )}
+
+            {resolvedMedia && hasClueMedia(resolvedMedia) && (
+              <div className="media-preview">
+                <ClueMedia media={resolvedMedia} className="clue-editor-media-preview" />
+              </div>
+            )}
+
+            {resolvedMedia && hasClueMedia(resolvedMedia) && (
+              <button type="button" className="btn btn-sm btn-danger" onClick={() => void clearMedia()}>
                 Remove media
               </button>
             )}
@@ -246,13 +388,22 @@ export function ClueEditor({
         </div>
 
         <div className="modal-footer">
+          {onReset && hasTileContent(draft) && (
+            <button type="button" className="btn btn-danger modal-footer-start" onClick={onReset}>
+              Reset Tile
+            </button>
+          )}
           <button type="button" className="btn" onClick={onCancel}>
             Cancel
           </button>
-          <button type="button" className="btn" onClick={() => onSaveAndNext(draft)}>
+          <button type="button" className="btn" onClick={() => onSaveAndNext({ ...draft, media: mediaForSave(draft.media) })}>
             Save &amp; Next
           </button>
-          <button type="button" className="btn btn-primary" onClick={() => onSave(draft)}>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => saveDraft(draft)}
+          >
             Save Clue
           </button>
         </div>

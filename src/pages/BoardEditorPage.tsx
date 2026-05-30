@@ -17,7 +17,7 @@ import { ClueEditor } from '../components/editor/ClueEditor';
 import { MiniGameEditor } from '../components/editor/MiniGameEditor';
 import { TileTypePicker } from '../components/editor/TileTypePicker';
 import { InspectorPanel } from '../components/editor/InspectorPanel';
-import { findClue, getNextClue, addCategory, removeCategory, isTileEmpty } from '../lib/boardFactory';
+import { findClue, getNextClue, addCategory, removeCategory, hasTileContent, isTileEmpty, resetClueTile } from '../lib/boardFactory';
 import { createMiniGameTile } from '../lib/miniGame';
 import {
   exportBoardBackup,
@@ -27,6 +27,8 @@ import {
 import { getBoard } from '../lib/storage';
 import type { Board, Clue } from '../types/board';
 import { isMiniGameTile, isStandardClue } from '../types/board';
+import { deleteMediaIfUnreferenced } from '../lib/mediaStorage';
+import { isLocalMedia } from '../lib/mediaUtils';
 import { useAutosave } from '../hooks/useAutosave';
 import { useBoards } from '../hooks/useBoards';
 import './BoardEditorPage.css';
@@ -188,6 +190,43 @@ export function BoardEditorPage() {
   };
 
   const closeEditor = () => setEditorMode('none');
+
+  const handleResetTile = () => {
+    if (!selectedCategoryId || !selectedClueId) return;
+    const found = findClue(board, selectedCategoryId, selectedClueId);
+    if (!found || !hasTileContent(found.clue, board)) return;
+
+    if (
+      !window.confirm(
+        'Reset this tile? Clue text, media, mini game setup, and Daily Double will be cleared. The point value stays the same.',
+      )
+    ) {
+      return;
+    }
+
+    const previousMediaId =
+      found.clue.media && isLocalMedia(found.clue.media) ? found.clue.media.mediaId : undefined;
+
+    updateBoard((b) => ({
+      ...b,
+      categories: b.categories.map((cat) =>
+        cat.id === selectedCategoryId
+          ? {
+              ...cat,
+              clues: cat.clues.map((c) =>
+                c.id === selectedClueId ? resetClueTile(c) : c,
+              ),
+            }
+          : cat,
+      ),
+    }));
+
+    if (previousMediaId) {
+      void deleteMediaIfUnreferenced(previousMediaId);
+    }
+
+    setEditorMode('none');
+  };
 
   const handleDelete = () => {
     if (window.confirm(`Delete "${board.title}"?`)) {
@@ -354,6 +393,7 @@ export function BoardEditorPage() {
           onEditMiniGame={() => setEditorMode('miniGame')}
           onPreviewMiniGame={() => navigate(`/boards/${board.id}/preview?clue=${selectedClueId}`)}
           onDuplicateTile={handleDuplicateTile}
+          onResetTile={handleResetTile}
         />
       </div>
 
@@ -374,6 +414,7 @@ export function BoardEditorPage() {
           onSave={(c) => handleSaveClue(c, false)}
           onSaveAndNext={(c) => handleSaveClue(c, true)}
           onConvertToMiniGame={handlePickMiniGame}
+          onReset={handleResetTile}
         />
       )}
 
@@ -384,6 +425,7 @@ export function BoardEditorPage() {
           clue={selected.clue}
           onCancel={closeEditor}
           onSave={(c) => handleSaveMiniGame(c, true)}
+          onReset={handleResetTile}
         />
       )}
     </div>

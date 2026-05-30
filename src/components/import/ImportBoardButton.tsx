@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
-import { validateBoardImport } from '../../lib/validation';
+import { importBoardFromFile } from '../../lib/boardImport';
 import { importBoard } from '../../hooks/useBoards';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,20 +16,14 @@ export function ImportBoardButton({ className = 'btn', onImported }: ImportBoard
 
   const handleFile = async (file: File) => {
     setError(null);
-    try {
-      const text = await file.text();
-      const data = JSON.parse(text) as unknown;
-      const result = validateBoardImport(data);
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      const board = importBoard(result.board);
-      onImported?.(board.id);
-      navigate(`/boards/${board.id}/edit`);
-    } catch {
-      setError('Could not parse JSON file. Check the file format.');
+    const result = await importBoardFromFile(file);
+    if (!result.ok) {
+      setError(result.error);
+      return;
     }
+    const board = importBoard(result.board);
+    onImported?.(board.id);
+    navigate(`/boards/${board.id}/edit`);
   };
 
   return (
@@ -37,9 +31,9 @@ export function ImportBoardButton({ className = 'btn', onImported }: ImportBoard
       <input
         ref={inputRef}
         type="file"
-        accept=".json,application/json"
+        accept=".json,.zip,application/json,application/zip"
         className="sr-only"
-        aria-label="Import board JSON file"
+        aria-label="Import board JSON or ZIP file"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) void handleFile(file);

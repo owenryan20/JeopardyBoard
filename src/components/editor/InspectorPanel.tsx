@@ -1,9 +1,9 @@
 import { useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, Check, Copy, Download, Eye, FileJson, Pencil, Printer, Upload } from 'lucide-react';
+import { AlertTriangle, Check, Copy, Download, Eye, FileJson, Pencil, Printer, Trash2, Upload } from 'lucide-react';
 import type { Board, Clue } from '../../types/board';
 import { isMiniGameTile } from '../../types/board';
 import { formatPeso } from '../../lib/currency';
-import { findClue } from '../../lib/boardFactory';
+import { findClue, hasTileContent } from '../../lib/boardFactory';
 import { getBoardReadiness, getClueStatusLabel } from '../../lib/boardStats';
 import {
   getCorrectAnswerName,
@@ -17,7 +17,8 @@ import {
   exportBoardJson,
   openPrintableBoard,
 } from '../../lib/export';
-import { validateBoardImport } from '../../lib/validation';
+import { exportBoardZip, exportBoardZipBackup } from '../../lib/boardZip';
+import { importBoardFromFile } from '../../lib/boardImport';
 import { importBoard } from '../../hooks/useBoards';
 import './InspectorPanel.css';
 
@@ -29,6 +30,7 @@ interface InspectorPanelProps {
   onEditMiniGame?: () => void;
   onPreviewMiniGame?: () => void;
   onDuplicateTile?: () => void;
+  onResetTile?: () => void;
 }
 
 const TEAM_COLORS = ['#3b82f6', '#a855f7', '#14b8a6'];
@@ -41,6 +43,7 @@ export function InspectorPanel({
   onEditMiniGame,
   onPreviewMiniGame,
   onDuplicateTile,
+  onResetTile,
 }: InspectorPanelProps) {
   const readiness = getBoardReadiness(board);
   const selected =
@@ -54,18 +57,13 @@ export function InspectorPanel({
 
   const handleImportFile = async (file: File) => {
     setImportError(null);
-    try {
-      const text = await file.text();
-      const result = validateBoardImport(JSON.parse(text) as unknown);
-      if (!result.ok) {
-        setImportError(result.error);
-        return;
-      }
-      importBoard({ ...result.board, id: board.id, title: result.board.title });
-      window.location.reload();
-    } catch {
-      setImportError('Invalid JSON file.');
+    const result = await importBoardFromFile(file);
+    if (!result.ok) {
+      setImportError(result.error);
+      return;
     }
+    importBoard({ ...result.board, id: board.id, title: result.board.title });
+    window.location.reload();
   };
 
   const previewTeams =
@@ -128,9 +126,15 @@ export function InspectorPanel({
               onEdit={onEditMiniGame}
               onPreview={onPreviewMiniGame}
               onDuplicate={onDuplicateTile}
+              onReset={onResetTile}
             />
           ) : (
-            <SelectedClueDetails categoryName={selected.category.name} clue={selected.clue} />
+            <SelectedClueDetails
+              categoryName={selected.category.name}
+              clue={selected.clue}
+              board={board}
+              onReset={onResetTile}
+            />
           )
         ) : (
           <p className="inspector-empty">Select a tile to see details.</p>
@@ -140,17 +144,23 @@ export function InspectorPanel({
       <section className="inspector-section card">
         <h3>Portability</h3>
         <p className="inspector-hint">
-          Boards are saved locally in your browser. Export a backup to move boards between devices.
+          Boards and uploaded media are saved in this browser on the host device. Export a ZIP backup to move boards with media to another computer.
         </p>
         <div className="inspector-actions">
+          <button type="button" className="btn btn-sm" onClick={() => void exportBoardZip(board)}>
+            <Download size={14} aria-hidden="true" /> Export ZIP
+          </button>
           <button type="button" className="btn btn-sm" onClick={() => exportBoardJson(board)}>
             <FileJson size={14} aria-hidden="true" /> Export JSON
           </button>
           <button type="button" className="btn btn-sm" onClick={() => openPrintableBoard(board)}>
             <Printer size={14} aria-hidden="true" /> Printable
           </button>
+          <button type="button" className="btn btn-sm" onClick={() => void exportBoardZipBackup(board)}>
+            <Download size={14} aria-hidden="true" /> ZIP Backup
+          </button>
           <button type="button" className="btn btn-sm" onClick={() => exportBoardBackup(board)}>
-            <Download size={14} aria-hidden="true" /> Backup
+            <Download size={14} aria-hidden="true" /> JSON Backup
           </button>
           <button
             type="button"
@@ -167,7 +177,7 @@ export function InspectorPanel({
         <input
           ref={fileRef}
           type="file"
-          accept=".json"
+          accept=".json,.zip,application/json,application/zip"
           className="sr-only"
           aria-label="Import JSON"
           onChange={(e) => {
@@ -195,7 +205,7 @@ export function InspectorPanel({
           }}
         >
           <Upload size={20} aria-hidden="true" />
-          <p>Drop JSON file or click to import</p>
+          <p>Drop JSON or ZIP file, or click to import</p>
         </div>
         {importError && (
           <p role="alert" className="import-error">
@@ -246,6 +256,7 @@ function MiniGameTileDetails({
   onEdit,
   onPreview,
   onDuplicate,
+  onReset,
 }: {
   board: Board;
   categoryName: string;
@@ -253,6 +264,7 @@ function MiniGameTileDetails({
   onEdit?: () => void;
   onPreview?: () => void;
   onDuplicate?: () => void;
+  onReset?: () => void;
 }) {
   const config = clue.miniGame!;
   const readiness = getMiniGameReadiness(board, clue);
@@ -330,13 +342,29 @@ function MiniGameTileDetails({
             <Copy size={14} aria-hidden="true" /> Duplicate Tile
           </button>
         )}
+        {onReset && hasTileContent(clue, board) && (
+          <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
+            <Trash2 size={14} aria-hidden="true" /> Reset Tile
+          </button>
+        )}
       </div>
     </div>
   );
 }
 
-function SelectedClueDetails({ categoryName, clue }: { categoryName: string; clue: Clue }) {
+function SelectedClueDetails({
+  categoryName,
+  clue,
+  board,
+  onReset,
+}: {
+  categoryName: string;
+  clue: Clue;
+  board: Board;
+  onReset?: () => void;
+}) {
   return (
+    <>
     <dl className="selected-clue-dl">
       <div>
         <dt>Category</dt>
@@ -371,5 +399,13 @@ function SelectedClueDetails({ categoryName, clue }: { categoryName: string; clu
         </div>
       )}
     </dl>
+    {onReset && hasTileContent(clue, board) && (
+      <div className="inspector-actions mg-inspector-actions">
+        <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
+          <Trash2 size={14} aria-hidden="true" /> Reset Tile
+        </button>
+      </div>
+    )}
+    </>
   );
 }

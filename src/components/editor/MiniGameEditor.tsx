@@ -19,6 +19,7 @@ import {
   suggestNameField as csvSuggestNameField,
 } from '../../lib/csvParse';
 import { appDatasetToBoardDataset } from '../../lib/datasetConvert';
+import { hasTileContent } from '../../lib/boardFactory';
 import { exportBoardBackup } from '../../lib/export';
 import { useDatasets } from '../../hooks/useDatasets';
 import {
@@ -57,6 +58,7 @@ interface MiniGameEditorProps {
   clue: Clue;
   onSave: (clue: Clue) => void;
   onCancel: () => void;
+  onReset?: () => void;
 }
 
 export function MiniGameEditor({
@@ -65,6 +67,7 @@ export function MiniGameEditor({
   clue,
   onSave,
   onCancel,
+  onReset,
 }: MiniGameEditorProps) {
   const { datasets: globalDatasets, createDataset, createFromParsed } = useDatasets();
   const [tab, setTab] = useState<Tab>('setup');
@@ -406,6 +409,11 @@ export function MiniGameEditor({
         </div>
 
         <div className="modal-footer">
+          {onReset && hasTileContent(draftClue, board) && (
+            <button type="button" className="btn btn-danger modal-footer-start" onClick={onReset}>
+              Reset Tile
+            </button>
+          )}
           <button type="button" className="btn" onClick={onCancel}>Cancel</button>
           <button type="button" className="btn" onClick={() => { save(); setTab('preview'); }}>Save &amp; Preview</button>
           <button type="button" className="btn btn-primary" onClick={save}>Save Mini Game</button>

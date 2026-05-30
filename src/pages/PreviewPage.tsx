@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
+import { ClueMedia } from '../components/clue/ClueMedia';
 import type { Board, Clue } from '../types/board';
 import { isMiniGameTile } from '../types/board';
 import { formatPeso } from '../lib/currency';
 import { findClue } from '../lib/boardFactory';
+import { hasClueMedia } from '../lib/mediaUtils';
 import { getBoard } from '../lib/storage';
 import './GameBoard.css';
 
@@ -186,17 +188,7 @@ export function ClueOverlay({
         <h2 id="clue-overlay-title" className="clue-overlay-text">
           {clue.clue || '(No clue text)'}
         </h2>
-        {clue.media?.url && (
-          <div className="clue-overlay-media">
-            {clue.media.type === 'image' ? (
-              <img src={clue.media.url} alt={clue.media.altText || 'Clue media'} />
-            ) : clue.media.type === 'video' ? (
-              <video src={clue.media.url} controls />
-            ) : (
-              <audio src={clue.media.url} controls />
-            )}
-          </div>
-        )}
+        {hasClueMedia(clue.media) && clue.media && <ClueMedia media={clue.media} />}
         {showAnswer && (
           <p className="clue-overlay-answer">
             <strong>Answer:</strong> {clue.answer || '(No answer)'}

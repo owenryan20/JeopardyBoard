@@ -4,6 +4,7 @@ import { appDatasetToBoardDataset } from './datasetConvert';
 import { applyFgoDatasetToMiniGame, getFgoDisambiguationFields, shouldApplyFgoDefaults } from './fgoMiniGameDefaults';
 import { getAppDataset } from './datasetStorage';
 import { createId } from './ids';
+import { mediaForSave } from './mediaUtils';
 import {
   buildDefaultAttributes,
   getRowId,
@@ -171,7 +172,7 @@ function migrateClue(clue: Partial<Clue> & { id: string; value: number }): Clue 
     answer: clue.answer ?? '',
     hostNotes: clue.hostNotes ?? '',
     isDailyDouble: Boolean(clue.isDailyDouble),
-    media: clue.media,
+    media: mediaForSave(clue.media),
     tags: Array.isArray(clue.tags) ? clue.tags : [],
     isUsed: Boolean(clue.isUsed),
     miniGame: type === 'miniGame' ? (clue.miniGame ?? createDefaultMiniGameConfig(clue.value)) : clue.miniGame,

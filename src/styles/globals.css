@@ -253,6 +253,10 @@ a {
   border-top: 1px solid var(--color-border);
 }
 
+.modal-footer-start {
+  margin-right: auto;
+}
+
 /* Dropdown */
 .dropdown {
   position: relative;
