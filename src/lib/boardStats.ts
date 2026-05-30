@@ -1,5 +1,6 @@
 import type { Board, Clue } from '../types/board';
 import { clueStatus, getAllClues } from './boardFactory';
+import { hasClueMedia } from './mediaUtils';
 export interface BoardReadiness {
   total: number;
   completed: number;
@@ -16,7 +17,7 @@ export function getBoardReadiness(board: Board): BoardReadiness {
     (c) => c.type !== 'miniGame' && c.clue.trim() && !c.answer.trim(),
   ).length;
   const mediaWithoutAlt = clues.filter(
-    (c) => c.media?.url && !c.media.altText?.trim(),
+    (c) => hasClueMedia(c.media) && !c.media?.altText?.trim(),
   ).length;
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
 

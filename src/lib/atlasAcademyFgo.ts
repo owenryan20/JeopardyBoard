@@ -248,14 +248,13 @@ function formatNpTarget(effectFlags?: string[]): string {
   return '';
 }
 
-/** Combines NP targeting (AoE / single / support) with card type, e.g. "AoE Buster". */
+/** Combines NP targeting (AoE / single / support) with card type, e.g. "AoE Buster" or "Support Arts". */
 export function formatNpCardAndTarget(np?: AtlasAcademyNoblePhantasm): string {
   if (!np) return '';
   const target = formatNpTarget(np.effectFlags);
   const card = formatNpCardType(np.card);
   const hasCard = card !== '' && card !== 'Unknown';
 
-  if (target === 'Support') return 'Support';
   if (target && hasCard) return `${target} ${card}`;
   if (hasCard) return card;
   return target;

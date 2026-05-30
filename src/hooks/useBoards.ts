@@ -7,6 +7,7 @@ import {
   loadRecentBoardIds,
   upsertBoard,
 } from '../lib/storage';
+import { gcUnreferencedMedia } from '../lib/mediaStorage';
 
 const EMPTY_BOARDS: Board[] = [];
 
@@ -56,6 +57,7 @@ export function useBoards() {
 
   const removeBoard = useCallback((id: string) => {
     deleteStoredBoard(id);
+    void gcUnreferencedMedia();
     notify();
   }, []);
 

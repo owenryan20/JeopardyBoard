@@ -1,10 +1,11 @@
-import { Check, Gamepad2, Image, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, Gamepad2, Image, Music2, Play, Plus, Trash2 } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import type { Board, Clue } from '../../types/board';
 import { isMiniGameTile } from '../../types/board';
 import { MAX_CATEGORY_COUNT, MIN_CATEGORY_COUNT } from '../../types/board';
 import { clueStatus, isTileEmpty } from '../../lib/boardFactory';
 import { getMiniGameReadiness } from '../../lib/miniGame';
+import { hasClueMedia } from '../../lib/mediaUtils';
 import './BoardGrid.css';
 
 interface BoardGridProps {
@@ -151,9 +152,15 @@ function ClueTile({
           {mgReadiness.label}
         </span>
       )}
-      {!isMini && clue.media?.url && (
+      {!isMini && hasClueMedia(clue.media) && (
         <span className="clue-tile-media" aria-label="Has media attachment">
-          {clue.media.type === 'video' ? <Play size={14} /> : <Image size={14} />}
+          {clue.media!.type === 'video' ? (
+            <Play size={14} />
+          ) : clue.media!.type === 'audio' ? (
+            <Music2 size={14} />
+          ) : (
+            <Image size={14} />
+          )}
         </span>
       )}
     </button>

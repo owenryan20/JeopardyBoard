@@ -1,8 +1,15 @@
 export type MediaType = 'image' | 'video' | 'audio';
 
+export type MediaStorage = 'url' | 'local';
+
 export interface Media {
   type: MediaType;
-  url: string;
+  /** `local` = uploaded file in browser IndexedDB; `url` = external link (default when url is set). */
+  storage?: MediaStorage;
+  url?: string;
+  /** IndexedDB key for uploaded media blobs. */
+  mediaId?: string;
+  mimeType?: string;
   filename?: string;
   altText?: string;
 }
