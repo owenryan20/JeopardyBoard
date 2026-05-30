@@ -1,4 +1,5 @@
 import type { Board, GameSession } from '../types/board';
+import { migrateBoard } from './boardFactory';
 import { normalizeGameSession } from './gameSession';
 
 const BOARDS_KEY = 'jeff-hardy-boards';
@@ -10,7 +11,7 @@ export function loadBoards(): Board[] {
     const raw = localStorage.getItem(BOARDS_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as Board[];
-    return Array.isArray(parsed) ? parsed : [];
+    return Array.isArray(parsed) ? parsed.map(migrateBoard) : [];
   } catch {
     return [];
   }

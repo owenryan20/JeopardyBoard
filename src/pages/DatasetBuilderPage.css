@@ -1,0 +1,150 @@
+.dataset-builder-page .page-header {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dataset-builder-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.dataset-name-input {
+  font-size: 20px;
+  font-weight: 700;
+  border: none;
+  background: transparent;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  flex: 1;
+  min-width: 120px;
+}
+
+.dataset-name-input:focus {
+  outline: 2px solid var(--color-primary-light);
+  background: var(--color-surface);
+}
+
+.dataset-builder-meta {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.dataset-builder-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.dataset-spreadsheet-wrap {
+  padding: 12px;
+  overflow: hidden;
+}
+
+.dataset-spreadsheet-toolbar {
+  margin-bottom: 8px;
+}
+
+.dataset-image-hint {
+  margin-bottom: 12px;
+}
+
+.dataset-spreadsheet-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 280px);
+}
+
+.dataset-spreadsheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: max-content;
+}
+
+.dataset-spreadsheet th,
+.dataset-spreadsheet td {
+  border: 1px solid var(--color-border);
+  padding: 4px;
+  vertical-align: top;
+}
+
+.dataset-spreadsheet thead th {
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.ds-actions-col {
+  width: 72px;
+  white-space: nowrap;
+}
+
+.ds-col-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.ds-col-name {
+  border: none;
+  background: none;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  padding: 0;
+  font-size: 12px;
+}
+
+.ds-col-type {
+  font-size: 11px;
+  padding: 4px 6px;
+}
+
+.ds-col-hidden {
+  opacity: 0.6;
+}
+
+.ds-cell-empty {
+  opacity: 0.5;
+}
+
+.ds-image-cell {
+  min-width: 140px;
+}
+
+.ds-thumb {
+  display: block;
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.ds-img-unavailable {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.ds-tag-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+@media (max-width: 900px) {
+  .dataset-builder-layout {
+    grid-template-columns: 1fr;
+  }
+}

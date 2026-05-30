@@ -14,8 +14,11 @@ import {
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BoardGrid } from '../components/editor/BoardGrid';
 import { ClueEditor } from '../components/editor/ClueEditor';
+import { MiniGameEditor } from '../components/editor/MiniGameEditor';
+import { TileTypePicker } from '../components/editor/TileTypePicker';
 import { InspectorPanel } from '../components/editor/InspectorPanel';
-import { findClue, getNextClue, addCategory, removeCategory } from '../lib/boardFactory';
+import { findClue, getNextClue, addCategory, removeCategory, isTileEmpty } from '../lib/boardFactory';
+import { createMiniGameTile } from '../lib/miniGame';
 import {
   exportBoardBackup,
   exportBoardJson,
@@ -23,9 +26,12 @@ import {
 } from '../lib/export';
 import { getBoard } from '../lib/storage';
 import type { Board, Clue } from '../types/board';
+import { isMiniGameTile, isStandardClue } from '../types/board';
 import { useAutosave } from '../hooks/useAutosave';
 import { useBoards } from '../hooks/useBoards';
 import './BoardEditorPage.css';
+
+type EditorMode = 'none' | 'picker' | 'clue' | 'miniGame';
 
 export function BoardEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -34,7 +40,7 @@ export function BoardEditorPage() {
   const [board, setBoard] = useState<Board | null>(() => (id ? getBoard(id) ?? null : null));
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [selectedClueId, setSelectedClueId] = useState<string | null>(null);
-  const [showEditor, setShowEditor] = useState(false);
+  const [editorMode, setEditorMode] = useState<EditorMode>('none');
   const [menuOpen, setMenuOpen] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -84,9 +90,46 @@ export function BoardEditorPage() {
   };
 
   const handleSelectClue = (categoryId: string, clueId: string) => {
+    const found = findClue(board, categoryId, clueId);
+    if (!found) return;
+
     setSelectedCategoryId(categoryId);
     setSelectedClueId(clueId);
-    setShowEditor(true);
+
+    if (isTileEmpty(found.clue, board) && isStandardClue(found.clue)) {
+      setEditorMode('picker');
+      return;
+    }
+
+    setEditorMode(isMiniGameTile(found.clue) ? 'miniGame' : 'clue');
+  };
+
+  const handlePickStandardClue = () => {
+    setEditorMode('clue');
+  };
+
+  const handlePickMiniGame = () => {
+    if (!selectedCategoryId || !selectedClueId) return;
+    const found = findClue(board, selectedCategoryId, selectedClueId);
+    if (!found) return;
+
+    if (isStandardClue(found.clue) && (found.clue.clue.trim() || found.clue.answer.trim())) {
+      if (!window.confirm('Convert this tile to a Mini Game? Existing clue text will be hidden but not deleted.')) {
+        return;
+      }
+    }
+
+    const mgTile = createMiniGameTile(found.clue.value);
+    mgTile.id = found.clue.id;
+    updateBoard((b) => ({
+      ...b,
+      categories: b.categories.map((cat) =>
+        cat.id === selectedCategoryId
+          ? { ...cat, clues: cat.clues.map((c) => (c.id === selectedClueId ? mgTile : c)) }
+          : cat,
+      ),
+    }));
+    setEditorMode('miniGame');
   };
 
   const handleSaveClue = (updated: Clue, goNext = false) => {
@@ -100,7 +143,7 @@ export function BoardEditorPage() {
           cat.id === selectedCategoryId
             ? {
                 ...cat,
-                clues: cat.clues.map((c) => (c.id === selectedClueId ? updated : c)),
+                clues: cat.clues.map((c) => (c.id === selectedClueId ? { ...updated, type: 'clue' as const } : c)),
               }
             : cat,
         ),
@@ -113,13 +156,38 @@ export function BoardEditorPage() {
       if (next) {
         setSelectedCategoryId(next.categoryId);
         setSelectedClueId(next.clueId);
+        const nextFound = findClue(savedBoard, next.categoryId, next.clueId);
+        setEditorMode(nextFound && isMiniGameTile(nextFound.clue) ? 'miniGame' : 'clue');
       } else {
-        setShowEditor(false);
+        setEditorMode('none');
       }
     } else {
-      setShowEditor(false);
+      setEditorMode('none');
     }
   };
+
+  const handleSaveMiniGame = (updated: Clue, close = true) => {
+    if (!selectedCategoryId || !selectedClueId) return;
+    updateBoard((b) => ({
+      ...b,
+      categories: b.categories.map((cat) =>
+        cat.id === selectedCategoryId
+          ? {
+              ...cat,
+              clues: cat.clues.map((c) =>
+                c.id === selectedClueId
+                  ? { ...updated, type: 'miniGame' as const, value: updated.miniGame?.pointValue ?? c.value }
+                  : c,
+              ),
+            }
+          : cat,
+      ),
+    }));
+    if (close) setEditorMode('none');
+    else setEditorMode('miniGame');
+  };
+
+  const closeEditor = () => setEditorMode('none');
 
   const handleDelete = () => {
     if (window.confirm(`Delete "${board.title}"?`)) {
@@ -134,26 +202,51 @@ export function BoardEditorPage() {
     setMenuOpen(false);
   };
 
-  const handleAddCategory = () => {
-    updateBoard((b) => addCategory(b));
-  };
+  const handleAddCategory = () => updateBoard((b) => addCategory(b));
 
   const handleRemoveCategory = (categoryId: string) => {
     const category = board.categories.find((c) => c.id === categoryId);
     if (!category) return;
-    if (
-      !window.confirm(
-        `Remove the "${category.name}" column and all of its clues? This cannot be undone.`,
-      )
-    ) {
+    if (!window.confirm(`Remove the "${category.name}" column and all of its clues? This cannot be undone.`)) {
       return;
     }
     if (selectedCategoryId === categoryId) {
       setSelectedCategoryId(null);
       setSelectedClueId(null);
-      setShowEditor(false);
+      setEditorMode('none');
     }
     updateBoard((b) => removeCategory(b, categoryId));
+  };
+
+  const handleDuplicateTile = () => {
+    if (!selectedCategoryId || !selectedClueId) return;
+    const source = findClue(board, selectedCategoryId, selectedClueId);
+    if (!source?.clue.miniGame || !isMiniGameTile(source.clue)) return;
+
+    for (const cat of board.categories) {
+      for (const clue of cat.clues) {
+        if (clue.id === selectedClueId) continue;
+        if (isTileEmpty(clue, board)) {
+          const copy: Clue = {
+            ...createMiniGameTile(clue.value),
+            id: clue.id,
+            miniGame: JSON.parse(JSON.stringify(source.clue.miniGame)),
+          };
+          updateBoard((b) => ({
+            ...b,
+            categories: b.categories.map((c) =>
+              c.id === cat.id
+                ? { ...c, clues: c.clues.map((cl) => (cl.id === clue.id ? copy : cl)) }
+                : c,
+            ),
+          }));
+          setSelectedCategoryId(cat.id);
+          setSelectedClueId(clue.id);
+          return;
+        }
+      }
+    }
+    window.alert('No empty tiles available to duplicate into.');
   };
 
   return (
@@ -173,12 +266,7 @@ export function BoardEditorPage() {
           ) : (
             <h1 className="editor-title">
               {board.title}
-              <button
-                type="button"
-                className="btn btn-ghost btn-icon btn-sm"
-                aria-label="Edit board title"
-                onClick={() => setEditingTitle(true)}
-              >
+              <button type="button" className="btn btn-ghost btn-icon btn-sm" aria-label="Edit board title" onClick={() => setEditingTitle(true)}>
                 <Pencil size={16} />
               </button>
             </h1>
@@ -198,13 +286,7 @@ export function BoardEditorPage() {
             Start Game
           </Link>
           <div className="dropdown" ref={menuRef}>
-            <button
-              type="button"
-              className="btn btn-icon"
-              aria-label="More actions"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((o) => !o)}
-            >
+            <button type="button" className="btn btn-icon" aria-label="More actions" aria-expanded={menuOpen} onClick={() => setMenuOpen((o) => !o)}>
               <MoreHorizontal size={18} />
             </button>
             {menuOpen && (
@@ -239,9 +321,7 @@ export function BoardEditorPage() {
             onCategoryNameChange={(categoryId, name) =>
               updateBoard((b) => ({
                 ...b,
-                categories: b.categories.map((c) =>
-                  c.id === categoryId ? { ...c, name } : c,
-                ),
+                categories: b.categories.map((c) => (c.id === categoryId ? { ...c, name } : c)),
               }))
             }
             onAddCategory={handleAddCategory}
@@ -252,53 +332,16 @@ export function BoardEditorPage() {
             <h2>Final Jeopardy</h2>
             <div className="final-fields">
               <div className="field">
-                <label className="label" htmlFor="fj-category">
-                  Category
-                </label>
-                <input
-                  id="fj-category"
-                  className="input"
-                  value={board.finalJeopardy.category}
-                  onChange={(e) =>
-                    updateBoard((b) => ({
-                      ...b,
-                      finalJeopardy: { ...b.finalJeopardy, category: e.target.value },
-                    }))
-                  }
-                />
+                <label className="label" htmlFor="fj-category">Category</label>
+                <input id="fj-category" className="input" value={board.finalJeopardy.category} onChange={(e) => updateBoard((b) => ({ ...b, finalJeopardy: { ...b.finalJeopardy, category: e.target.value } }))} />
               </div>
               <div className="field">
-                <label className="label" htmlFor="fj-clue">
-                  Clue
-                </label>
-                <textarea
-                  id="fj-clue"
-                  className="textarea"
-                  rows={2}
-                  value={board.finalJeopardy.clue}
-                  onChange={(e) =>
-                    updateBoard((b) => ({
-                      ...b,
-                      finalJeopardy: { ...b.finalJeopardy, clue: e.target.value },
-                    }))
-                  }
-                />
+                <label className="label" htmlFor="fj-clue">Clue</label>
+                <textarea id="fj-clue" className="textarea" rows={2} value={board.finalJeopardy.clue} onChange={(e) => updateBoard((b) => ({ ...b, finalJeopardy: { ...b.finalJeopardy, clue: e.target.value } }))} />
               </div>
               <div className="field">
-                <label className="label" htmlFor="fj-answer">
-                  Correct Answer
-                </label>
-                <input
-                  id="fj-answer"
-                  className="input"
-                  value={board.finalJeopardy.answer}
-                  onChange={(e) =>
-                    updateBoard((b) => ({
-                      ...b,
-                      finalJeopardy: { ...b.finalJeopardy, answer: e.target.value },
-                    }))
-                  }
-                />
+                <label className="label" htmlFor="fj-answer">Correct Answer</label>
+                <input id="fj-answer" className="input" value={board.finalJeopardy.answer} onChange={(e) => updateBoard((b) => ({ ...b, finalJeopardy: { ...b.finalJeopardy, answer: e.target.value } }))} />
               </div>
             </div>
           </section>
@@ -308,16 +351,39 @@ export function BoardEditorPage() {
           board={board}
           selectedCategoryId={selectedCategoryId}
           selectedClueId={selectedClueId}
+          onEditMiniGame={() => setEditorMode('miniGame')}
+          onPreviewMiniGame={() => navigate(`/boards/${board.id}/preview?clue=${selectedClueId}`)}
+          onDuplicateTile={handleDuplicateTile}
         />
       </div>
 
-      {showEditor && selected && (
+      {editorMode === 'picker' && selected && (
+        <TileTypePicker
+          pointValue={selected.clue.value}
+          onSelectClue={handlePickStandardClue}
+          onSelectMiniGame={handlePickMiniGame}
+          onCancel={closeEditor}
+        />
+      )}
+
+      {editorMode === 'clue' && selected && (
         <ClueEditor
           categoryName={selected.category.name}
           clue={selected.clue}
-          onCancel={() => setShowEditor(false)}
+          onCancel={closeEditor}
           onSave={(c) => handleSaveClue(c, false)}
           onSaveAndNext={(c) => handleSaveClue(c, true)}
+          onConvertToMiniGame={handlePickMiniGame}
+        />
+      )}
+
+      {editorMode === 'miniGame' && selected && selected.clue.miniGame && (
+        <MiniGameEditor
+          board={board}
+          categoryName={selected.category.name}
+          clue={selected.clue}
+          onCancel={closeEditor}
+          onSave={(c) => handleSaveMiniGame(c, true)}
         />
       )}
     </div>

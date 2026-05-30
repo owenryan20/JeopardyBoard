@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
 import type { Board, Clue } from '../types/board';
+import { isMiniGameTile } from '../types/board';
 import { formatPeso } from '../lib/currency';
 import { findClue } from '../lib/boardFactory';
 import { getBoard } from '../lib/storage';
@@ -9,6 +11,7 @@ import './GameBoard.css';
 
 export function PreviewPage() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [board, setBoard] = useState<Board | null>(() => (id ? getBoard(id) ?? null : null));
   const [revealed, setRevealed] = useState<{ categoryId: string; clueId: string } | null>(null);
@@ -21,10 +24,24 @@ export function PreviewPage() {
     else setBoard(loaded);
   }, [id, navigate]);
 
+  useEffect(() => {
+    const clueId = searchParams.get('clue');
+    if (!board || !clueId) return;
+    for (const cat of board.categories) {
+      const clue = cat.clues.find((c) => c.id === clueId);
+      if (clue) {
+        setRevealed({ categoryId: cat.id, clueId: clue.id });
+        break;
+      }
+    }
+  }, [board, searchParams]);
+
   if (!board) return <div className="game-screen"><p>Loading…</p></div>;
 
   const activeClue =
     revealed && findClue(board, revealed.categoryId, revealed.clueId);
+
+  const isMiniGame = activeClue && isMiniGameTile(activeClue.clue);
 
   return (
     <div className="game-screen preview-screen">
@@ -50,7 +67,26 @@ export function PreviewPage() {
         />
       </div>
 
-      {activeClue && (
+      {activeClue && isMiniGame && (
+        <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
+          <CharacterGuessPanel
+            board={board}
+            categoryName={activeClue.category.name}
+            clue={activeClue.clue}
+            mode="preview"
+            onClose={() => {
+              setRevealed(null);
+              setShowAnswer(false);
+            }}
+            onBackToBoard={() => {
+              setRevealed(null);
+              setShowAnswer(false);
+            }}
+          />
+        </div>
+      )}
+
+      {activeClue && !isMiniGame && (
         <ClueOverlay
           categoryName={activeClue.category.name}
           clue={activeClue.clue}
