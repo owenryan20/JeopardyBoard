@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { ToastHost } from './components/ui/ToastHost';
 import { AppShell } from './components/layout/AppShell';
 import { BoardEditorPage } from './pages/BoardEditorPage';
 import { Sidebar } from './components/layout/Sidebar';
@@ -14,7 +15,9 @@ import { PreviewPage } from './pages/PreviewPage';
 
 export default function App() {
   return (
-    <Routes>
+    <>
+      <ToastHost />
+      <Routes>
       <Route element={<AppShell />}>
         <Route index element={<DashboardPage />} />
         <Route path="boards" element={<MyBoardsPage />} />
@@ -37,5 +40,6 @@ export default function App() {
       <Route path="boards/:id/game" element={<GamePage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

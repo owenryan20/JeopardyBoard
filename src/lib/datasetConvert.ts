@@ -45,6 +45,11 @@ export function appDatasetToBoardDataset(ds: AppDataset): BoardDataset {
     }),
     createdAt: ds.createdAt,
     updatedAt: ds.updatedAt,
+    type: ds.type,
+    source: ds.source,
+    lastFetchedAt: ds.lastFetchedAt,
+    lastEditedAt: ds.lastEditedAt,
+    hasLocalEdits: ds.hasLocalEdits,
   };
 }
 
@@ -77,12 +82,16 @@ export function boardDatasetToAppDataset(
   return {
     id: ds.id,
     name: ds.name,
-    type,
-    sourceType,
+    type: ds.type ?? type,
+    sourceType: ds.source ? 'livePreset' : sourceType,
     columns,
     rows,
     createdAt: ds.createdAt,
     updatedAt: ds.updatedAt,
+    source: ds.source,
+    lastFetchedAt: ds.lastFetchedAt,
+    lastEditedAt: ds.lastEditedAt,
+    hasLocalEdits: ds.hasLocalEdits,
   };
 }
 

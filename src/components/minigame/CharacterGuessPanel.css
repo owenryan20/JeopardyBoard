@@ -98,6 +98,7 @@
   right: 0;
   top: calc(100% + 4px);
   background: var(--color-surface);
+  color: #0f172a;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   box-shadow: var(--shadow-lg);
@@ -112,6 +113,7 @@
 .cg-panel-game .cg-suggestions {
   background: #1a3050;
   border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
 
 .cg-suggestions button {
@@ -123,11 +125,23 @@
   cursor: pointer;
   border-radius: 4px;
   font-size: 14px;
-  color: inherit;
+  color: #0f172a;
 }
 
-.cg-suggestions button:hover {
+.cg-panel-game .cg-suggestions button {
+  color: #fff;
+}
+
+.cg-suggestions button:hover,
+.cg-suggestions button:focus-visible {
   background: rgba(124, 58, 237, 0.15);
+  color: #0f172a;
+}
+
+.cg-panel-game .cg-suggestions button:hover,
+.cg-panel-game .cg-suggestions button:focus-visible {
+  background: rgba(124, 58, 237, 0.35);
+  color: #fff;
 }
 
 .cg-table-wrap {

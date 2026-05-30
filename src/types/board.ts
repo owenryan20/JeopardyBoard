@@ -46,6 +46,8 @@ export interface MiniGameConfig {
   attributes: MiniGameAttribute[];
 }
 
+import type { DatasetKind, DatasetSourceMetadata } from './dataset';
+
 export interface BoardDataset {
   id: string;
   name: string;
@@ -54,6 +56,11 @@ export interface BoardDataset {
   rows: Array<Record<string, string>>;
   createdAt: string;
   updatedAt: string;
+  type?: DatasetKind;
+  source?: DatasetSourceMetadata;
+  lastFetchedAt?: string;
+  lastEditedAt?: string;
+  hasLocalEdits?: boolean;
 }
 
 export interface Clue {

@@ -3,20 +3,24 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CreateDatasetModal } from '../components/datasets/CreateDatasetModal';
 import { DatasetCard } from '../components/datasets/DatasetCard';
+import { FgoServantsModal } from '../components/datasets/FgoServantsModal';
 import { PasteTableModal } from '../components/datasets/PasteTableModal';
 import { UploadCsvModal } from '../components/datasets/UploadCsvModal';
 import { useDatasets, notifyDatasetChange } from '../hooks/useDatasets';
-import type { DatasetKind } from '../types/dataset';
+import type { AppDataset, DatasetKind } from '../types/dataset';
 import { replaceAppDatasetData } from '../lib/datasetStorage';
+import { showToast } from '../lib/toast';
 import './DatasetsPage.css';
 import './DashboardPage.css';
 
 export function DatasetsPage() {
-  const { datasets, createDataset, duplicateDataset, removeDataset, createFromParsed } = useDatasets();
+  const { datasets, createDataset, duplicateDataset, removeDataset, createFromParsed, refreshDatasets } = useDatasets();
   const navigate = useNavigate();
   const [showCreate, setShowCreate] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
+  const [showFgo, setShowFgo] = useState(false);
+  const [refreshDataset, setRefreshDataset] = useState<AppDataset | null>(null);
   const [replaceId, setReplaceId] = useState<string | null>(null);
 
   const sorted = datasets.slice().sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
@@ -25,6 +29,21 @@ export function DatasetsPage() {
     const ds = createDataset(name, kind);
     setShowCreate(false);
     navigate(`/datasets/${ds.id}`);
+  };
+
+  const handleFgoSaved = (dataset: AppDataset) => {
+    refreshDatasets();
+    setShowFgo(false);
+    setRefreshDataset(null);
+    showToast('FGO Servants dataset saved.');
+    navigate(`/datasets/${dataset.id}`);
+  };
+
+  const handleFgoRefreshSaved = (dataset: AppDataset) => {
+    refreshDatasets();
+    setRefreshDataset(null);
+    showToast('FGO Servants dataset updated.');
+    navigate(`/datasets/${dataset.id}`);
   };
 
   const handleImport = (name: string, columns: string[], rows: Array<Record<string, string>>) => {
@@ -77,7 +96,7 @@ export function DatasetsPage() {
         <div className="empty-state card">
           <Database size={32} aria-hidden="true" />
           <h2>No datasets yet</h2>
-          <p>Create a character list, upload a CSV, or paste rows from a spreadsheet. Datasets can be reused across Mini Game tiles.</p>
+          <p>Create a character list, upload a CSV, paste rows from a spreadsheet, or fetch FGO Servants from Atlas Academy.</p>
           <div className="empty-state-actions">
             <button type="button" className="btn btn-primary" onClick={() => setShowCreate(true)}>Create Dataset</button>
             <button type="button" className="btn" onClick={() => setShowUpload(true)}>Upload CSV</button>
@@ -93,12 +112,33 @@ export function DatasetsPage() {
               onDuplicate={duplicateDataset}
               onDelete={removeDataset}
               onReplaceCsv={(id) => { setReplaceId(id); setShowUpload(true); }}
+              onRefreshFgo={(ds) => setRefreshDataset(ds)}
             />
           ))}
         </div>
       )}
 
-      {showCreate && <CreateDatasetModal onCancel={() => setShowCreate(false)} onCreate={handleCreate} />}
+      {showCreate && (
+        <CreateDatasetModal
+          onCancel={() => setShowCreate(false)}
+          onCreate={handleCreate}
+          onFetchFgo={() => { setShowCreate(false); setShowFgo(true); }}
+        />
+      )}
+      {showFgo && (
+        <FgoServantsModal
+          onCancel={() => setShowFgo(false)}
+          onSaved={handleFgoSaved}
+        />
+      )}
+      {refreshDataset && (
+        <FgoServantsModal
+          existingDataset={refreshDataset}
+          mode="refresh"
+          onCancel={() => setRefreshDataset(null)}
+          onSaved={handleFgoRefreshSaved}
+        />
+      )}
       {showUpload && (
         <UploadCsvModal
           replaceMode={Boolean(replaceId)}
