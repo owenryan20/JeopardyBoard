@@ -5,6 +5,7 @@ import {
   Download,
   MoreHorizontal,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
   Upload,
@@ -12,10 +13,12 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { DatasetQualityPanel } from '../components/datasets/DatasetQualityPanel';
+import { FgoRefreshWarningModal, FgoServantsModal } from '../components/datasets/FgoServantsModal';
 import { PasteTableModal } from '../components/datasets/PasteTableModal';
 import { UploadCsvModal } from '../components/datasets/UploadCsvModal';
 import { useDatasets } from '../hooks/useDatasets';
 import type { AppDataset, DatasetColumn, DatasetColumnType, DatasetRow } from '../types/dataset';
+import { isFgoLivePresetDataset } from '../types/dataset';
 import { appDatasetToBoardDataset, createColumn, createEmptyRow, duplicateRow } from '../lib/datasetConvert';
 import { getDatasetQualityChecks } from '../lib/datasetQuality';
 import { datasetToCsv } from '../lib/csvParse';
@@ -23,6 +26,9 @@ import { downloadFile } from '../lib/export';
 import { replaceAppDatasetData } from '../lib/datasetStorage';
 import { createId } from '../lib/ids';
 import { formatDatasetUsage, getDatasetUsage } from '../lib/datasetUsage';
+import { formatFetchedAt, showToast } from '../lib/toast';
+import { formatFgoExportLabel, formatFgoRegionLabel } from '../lib/atlasAcademyFgo';
+import '../components/datasets/FgoServantsModal.css';
 import './DatasetBuilderPage.css';
 import './DashboardPage.css';
 
@@ -49,11 +55,16 @@ export function DatasetBuilderPage() {
   const [showUpload, setShowUpload] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showRefresh, setShowRefresh] = useState(false);
+  const [showRefreshWarn, setShowRefreshWarn] = useState(false);
   const saveTimer = useRef<number | null>(null);
+  const skipEditMark = useRef(false);
 
   useEffect(() => {
-    if (source) setDraft(source);
-    else if (id) navigate('/datasets');
+    if (source) {
+      skipEditMark.current = true;
+      setDraft(source);
+    } else if (id) navigate('/datasets');
   }, [source, id, navigate]);
 
   useEffect(() => {
@@ -84,8 +95,23 @@ export function DatasetBuilderPage() {
 
   const qualityChecks = getDatasetQualityChecks(draft);
   const usage = getDatasetUsage(draft.id);
+  const isLiveFgo = isFgoLivePresetDataset(draft);
 
-  const updateDraft = (updater: (d: AppDataset) => AppDataset) => setDraft((prev) => (prev ? updater(prev) : prev));
+  const updateDraft = (updater: (d: AppDataset) => AppDataset, markEdited = true) => {
+    setDraft((prev) => {
+      if (!prev) return prev;
+      const next = updater(prev);
+      if (markEdited && !skipEditMark.current) {
+        return {
+          ...next,
+          hasLocalEdits: true,
+          lastEditedAt: new Date().toISOString(),
+        };
+      }
+      skipEditMark.current = false;
+      return next;
+    });
+  };
 
   const addRow = () => updateDraft((d) => ({ ...d, rows: [...d.rows, createEmptyRow(d.columns)] }));
 
@@ -196,6 +222,21 @@ export function DatasetBuilderPage() {
     navigate('/datasets');
   };
 
+  const startRefresh = () => {
+    if (draft.hasLocalEdits) {
+      setShowRefreshWarn(true);
+      return;
+    }
+    setShowRefresh(true);
+  };
+
+  const handleFgoRefreshSaved = (dataset: AppDataset) => {
+    skipEditMark.current = true;
+    setDraft(dataset);
+    setShowRefresh(false);
+    showToast('FGO Servants dataset updated.');
+  };
+
   return (
     <div className="page dataset-builder-page">
       <header className="page-header">
@@ -209,9 +250,15 @@ export function DatasetBuilderPage() {
             aria-label="Dataset name"
             onChange={(e) => updateDraft((d) => ({ ...d, name: e.target.value }))}
           />
+          {isLiveFgo && <span className="badge-live">Live preset</span>}
           <span className="save-status">{saveLabel}</span>
         </div>
         <div className="page-actions">
+          {isLiveFgo && (
+            <button type="button" className="btn btn-sm" onClick={startRefresh}>
+              <RefreshCw size={14} /> Refresh from Atlas Academy
+            </button>
+          )}
           <button type="button" className="btn btn-sm" onClick={addRow}><Plus size={14} /> Add Row</button>
           <button type="button" className="btn btn-sm" onClick={addColumn}><Plus size={14} /> Add Column</button>
           <button type="button" className="btn btn-sm" onClick={() => setShowPaste(true)}><ClipboardPaste size={14} /> Paste Rows</button>
@@ -240,6 +287,19 @@ export function DatasetBuilderPage() {
         <span>{draft.columns.filter((c) => !c.hidden).length} columns</span>
         <span>{formatDatasetUsage(usage)}</span>
       </div>
+
+      {isLiveFgo && (
+        <div className="dataset-source-banner">
+          <span>
+            <strong>Source:</strong> {draft.source?.label ?? 'Atlas Academy'}
+            {' · '}{formatFgoRegionLabel(draft.source)}
+            {' · '}{formatFgoExportLabel(draft.source)}
+            {draft.lastFetchedAt ? ` · Last fetched ${formatFetchedAt(draft.lastFetchedAt)}` : ''}
+            {draft.hasLocalEdits && draft.lastEditedAt ? ` · Edited ${formatFetchedAt(draft.lastEditedAt)}` : ''}
+          </span>
+          <span className="field-hint">Saved locally after import. Refresh anytime to fetch the latest servant data.</span>
+        </div>
+      )}
 
       <div className="dataset-builder-layout">
         <DatasetQualityPanel checks={qualityChecks} />
@@ -297,6 +357,29 @@ export function DatasetBuilderPage() {
       )}
       {showPaste && (
         <PasteTableModal defaultName={`${draft.name} rows`} onCancel={() => setShowPaste(false)} onImport={handlePasteAppend} />
+      )}
+      {showRefresh && (
+        <FgoServantsModal
+          existingDataset={draft}
+          mode="refresh"
+          onCancel={() => setShowRefresh(false)}
+          onSaved={handleFgoRefreshSaved}
+        />
+      )}
+      {showRefreshWarn && (
+        <FgoRefreshWarningModal
+          dataset={draft}
+          onCancel={() => setShowRefreshWarn(false)}
+          onSaveAsNew={() => {
+            setShowRefreshWarn(false);
+            duplicateDataset(draft.id);
+            showToast('Saved as new dataset copy.');
+          }}
+          onRefreshAnyway={() => {
+            setShowRefreshWarn(false);
+            setShowRefresh(true);
+          }}
+        />
       )}
     </div>
   );

@@ -37,7 +37,7 @@ export function validateBoardImport(data: unknown): { ok: true; board: Board } |
   const board = normalizeImportedBoard(data as Board);
 
   for (const ds of board.datasets ?? []) {
-    upsertAppDataset(boardDatasetToAppDataset(ds, 'custom', 'backup'));
+    upsertAppDataset(boardDatasetToAppDataset(ds, ds.type ?? 'custom', ds.source ? 'livePreset' : 'backup'));
   }
 
   return { ok: true, board };
@@ -58,6 +58,11 @@ function normalizeImportedBoard(raw: Board): Board {
           rows: Array.isArray(d.rows) ? d.rows : [],
           createdAt: d.createdAt ?? now,
           updatedAt: now,
+          type: d.type,
+          source: d.source,
+          lastFetchedAt: d.lastFetchedAt,
+          lastEditedAt: d.lastEditedAt,
+          hasLocalEdits: d.hasLocalEdits,
         }))
       : [],
     categories: raw.categories.map((cat) => ({

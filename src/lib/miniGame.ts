@@ -1,6 +1,7 @@
 import type { Board, BoardDataset, Clue, MiniGameConfig } from '../types/board';
 import { isMiniGameTile } from '../types/board';
 import { appDatasetToBoardDataset } from './datasetConvert';
+import { applyFgoDatasetToMiniGame, getFgoDisambiguationFields, shouldApplyFgoDefaults } from './fgoMiniGameDefaults';
 import { getAppDataset } from './datasetStorage';
 import { createId } from './ids';
 import {
@@ -49,6 +50,10 @@ export function applyDatasetToMiniGame(
   config: MiniGameConfig,
   dataset: BoardDataset,
 ): MiniGameConfig {
+  if (shouldApplyFgoDefaults(dataset)) {
+    return applyFgoDatasetToMiniGame(config, dataset);
+  }
+
   const nameField = suggestNameField(dataset.columns);
   const imageField = suggestImageField(dataset.columns);
   const attributes = buildDefaultAttributes(dataset.columns, dataset.rows);
@@ -118,7 +123,12 @@ export function getMiniGameReadiness(board: Board, clue: Clue): MiniGameReadines
   checklist[0].done = Boolean(dataset);
   checklist[1].done = Boolean(config.fieldMapping.nameField);
   checklist[2].done = Boolean(config.correctAnswerId);
-  checklist[3].done = config.attributes.some((a) => a.visible && a.behavior !== 'hidden' && a.behavior !== 'image');
+  const visibleAttrs = config.attributes.filter(
+    (a) => a.visible && a.behavior !== 'hidden' && a.behavior !== 'image' && a.behavior !== 'searchName',
+  );
+  const mappedColumns = dataset ? new Set(dataset.columns) : new Set<string>();
+  const hasVisibleMapped = visibleAttrs.some((a) => mappedColumns.has(a.column));
+  checklist[3].done = hasVisibleMapped;
 
   if (!dataset && config.datasetId) {
     return { status: 'missingDataset', label: 'Missing Dataset', checklist };
@@ -178,9 +188,11 @@ export function searchDatasetRows(
 
   const { nameField, searchableFields } = config.fieldMapping;
   const fields = [nameField, ...searchableFields].filter(Boolean);
-  const disambiguation = dataset.columns.filter(
-    (c) => c !== nameField && !fields.includes(c),
-  ).slice(0, 2);
+  const disambiguation = shouldApplyFgoDefaults(dataset)
+    ? getFgoDisambiguationFields(dataset)
+    : dataset.columns.filter(
+        (c) => c !== nameField && !fields.includes(c),
+      ).slice(0, 2);
 
   return dataset.rows
     .filter((row) =>

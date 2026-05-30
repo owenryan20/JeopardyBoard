@@ -1,7 +1,11 @@
 import type { Board } from '../types/board';
-import type { AppDataset, DatasetKind, DatasetSourceType } from '../types/dataset';
+import type { AppDataset, DatasetKind, DatasetSourceMetadata, DatasetSourceType } from '../types/dataset';
+import { isFgoLivePresetDataset } from '../types/dataset';
+import { buildFgoAppDataset, type FgoTransformResult } from './atlasAcademyFgo';
 import { boardDatasetToAppDataset, createColumn, appDatasetToBoardDataset } from './datasetConvert';
 import { getTemplate } from './datasetTemplates';
+import type { FgoServantsRegion } from '../types/dataset';
+import { inferFgoRegionFromSource, getFgoRegionConfig } from './fgoServantsPreset';
 import { createId } from './ids';
 import { loadBoards } from './storage';
 
@@ -18,6 +22,19 @@ function loadDatasetsRaw(): AppDataset[] {
   } catch {
     return [];
   }
+}
+
+function normalizeSource(raw: Partial<DatasetSourceMetadata> | undefined): DatasetSourceMetadata | undefined {
+  if (!raw?.kind) return undefined;
+  return {
+    kind: raw.kind,
+    label: raw.label ?? 'Unknown',
+    url: raw.url ?? '',
+    lastFetchedAt: raw.lastFetchedAt ?? new Date().toISOString(),
+    livePreset: Boolean(raw.livePreset),
+    sourceVersion: raw.sourceVersion,
+    region: raw.region,
+  };
 }
 
 function normalizeDataset(raw: Partial<AppDataset> & { id: string }): AppDataset {
@@ -44,6 +61,10 @@ function normalizeDataset(raw: Partial<AppDataset> & { id: string }): AppDataset
       : [],
     createdAt: raw.createdAt ?? now,
     updatedAt: raw.updatedAt ?? now,
+    source: normalizeSource(raw.source),
+    lastFetchedAt: raw.lastFetchedAt ?? raw.source?.lastFetchedAt,
+    lastEditedAt: raw.lastEditedAt,
+    hasLocalEdits: Boolean(raw.hasLocalEdits),
   };
 }
 
@@ -74,16 +95,31 @@ export function deleteAppDataset(id: string): void {
   saveDatasets(loadDatasetsRaw().filter((d) => d.id !== id));
 }
 
+export function findExistingFgoDataset(region?: FgoServantsRegion): AppDataset | undefined {
+  const datasets = loadDatasetsRaw().filter((d) => isFgoLivePresetDataset(d));
+  if (region) {
+    return datasets.find((d) => inferFgoRegionFromSource(d.source) === region);
+  }
+  return datasets[0];
+}
+
 export function duplicateAppDataset(id: string): AppDataset | null {
   const source = getAppDataset(id);
   if (!source) return null;
   const now = new Date().toISOString();
+  const isFgo = isFgoLivePresetDataset(source);
   const copy: AppDataset = {
     ...JSON.parse(JSON.stringify(source)) as AppDataset,
     id: createId(),
-    name: `${source.name} (Copy)`,
+    name: isFgo ? 'FGO Servants Copy' : `${source.name} (Copy)`,
+    type: isFgo ? 'custom' : source.type,
+    sourceType: isFgo ? 'manual' : source.sourceType,
     createdAt: now,
     updatedAt: now,
+    source: undefined,
+    lastFetchedAt: undefined,
+    hasLocalEdits: false,
+    lastEditedAt: undefined,
     columns: source.columns.map((c) => ({ ...c, id: createId() })),
     rows: source.rows.map((r) => ({ ...r, id: createId() })),
   };
@@ -141,6 +177,40 @@ export function createAppDatasetFromParsed(
   });
 }
 
+export function saveFgoServantsDataset(
+  name: string,
+  transform: FgoTransformResult,
+  fetchedAt: string,
+  region: FgoServantsRegion,
+  existingId?: string,
+): AppDataset {
+  const partial = buildFgoAppDataset(name, transform, fetchedAt, region, existingId);
+  const existing = existingId ? getAppDataset(existingId) : undefined;
+  const dataset: AppDataset = {
+    ...partial,
+    createdAt: existing?.createdAt ?? partial.createdAt ?? new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  return upsertAppDataset(dataset);
+}
+
+export function saveFgoServantsAsNewDataset(
+  name: string,
+  transform: FgoTransformResult,
+  fetchedAt: string,
+  region: FgoServantsRegion,
+): AppDataset {
+  return saveFgoServantsDataset(name, transform, fetchedAt, region);
+}
+
+export function defaultFgoDatasetName(
+  region: FgoServantsRegion = 'JP',
+  existing?: AppDataset,
+): string {
+  if (existing?.name) return existing.name;
+  return getFgoRegionConfig(region).defaultDatasetName;
+}
+
 export function ensureMigration(): void {
   if (migrationDone) return;
   migrationDone = true;
@@ -153,7 +223,7 @@ export function ensureMigration(): void {
   for (const board of boards) {
     for (const ds of board.datasets ?? []) {
       if (!globalIds.has(ds.id)) {
-        global.push(boardDatasetToAppDataset(ds, 'custom', 'backup'));
+        global.push(boardDatasetToAppDataset(ds, ds.type ?? 'custom', 'backup'));
         globalIds.add(ds.id);
         globalChanged = true;
       }
@@ -219,5 +289,17 @@ export function replaceAppDatasetData(
     columns,
     rows: datasetRows,
     updatedAt: new Date().toISOString(),
+    hasLocalEdits: true,
+    lastEditedAt: new Date().toISOString(),
+  });
+}
+
+export function markDatasetEdited(id: string): void {
+  const existing = getAppDataset(id);
+  if (!existing) return;
+  upsertAppDataset({
+    ...existing,
+    hasLocalEdits: true,
+    lastEditedAt: new Date().toISOString(),
   });
 }

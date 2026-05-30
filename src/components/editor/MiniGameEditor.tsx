@@ -29,10 +29,15 @@ import {
 } from '../../lib/miniGame';
 import { ChooseDatasetModal } from '../datasets/ChooseDatasetModal';
 import { CreateDatasetModal } from '../datasets/CreateDatasetModal';
+import { FgoServantsModal } from '../datasets/FgoServantsModal';
 import { PasteTableModal } from '../datasets/PasteTableModal';
 import { UploadCsvModal } from '../datasets/UploadCsvModal';
 import { CharacterGuessPanel } from '../minigame/CharacterGuessPanel';
+import { getFgoDisambiguationFields, shouldApplyFgoDefaults } from '../../lib/fgoMiniGameDefaults';
+import { FGO_SERVANTS_SOURCE_LABEL } from '../../lib/fgoServantsPreset';
+import { showToast } from '../../lib/toast';
 import './MiniGameEditor.css';
+import '../datasets/FgoServantsModal.css';
 
 type Tab = 'setup' | 'dataset' | 'attributes' | 'preview';
 
@@ -70,6 +75,7 @@ export function MiniGameEditor({
   const [showCreate, setShowCreate] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
   const [showPaste, setShowPaste] = useState(false);
+  const [showFgo, setShowFgo] = useState(false);
 
   const config = draftClue.miniGame!;
   const dataset = getDataset(board, config.datasetId);
@@ -140,6 +146,12 @@ export function MiniGameEditor({
     setShowPaste(false);
   };
 
+  const handleFgoSaved = (ds: AppDataset) => {
+    attachDataset(appDatasetToBoardDataset(ds));
+    setShowFgo(false);
+    showToast('FGO Servants dataset added to this Mini Game.');
+  };
+
   const updateAttribute = (index: number, partial: Partial<MiniGameAttribute>) => {
     const attrs = [...config.attributes];
     attrs[index] = { ...attrs[index], ...partial };
@@ -147,7 +159,9 @@ export function MiniGameEditor({
   };
 
   const disambiguationFields = dataset
-    ? dataset.columns.filter((c) => c !== config.fieldMapping.nameField).slice(0, 2)
+    ? shouldApplyFgoDefaults(dataset)
+      ? getFgoDisambiguationFields(dataset)
+      : dataset.columns.filter((c) => c !== config.fieldMapping.nameField).slice(0, 2)
     : [];
 
   const answerPickerOptions = dataset
@@ -276,6 +290,7 @@ export function MiniGameEditor({
                   <p>This Mini Game needs its dataset before it can be played.</p>
                   <div className="dataset-actions mg-dataset-actions">
                     <button type="button" className="btn btn-sm btn-primary" onClick={() => setShowChoose(true)}>Choose Replacement Dataset</button>
+                    <button type="button" className="btn btn-sm" onClick={() => setShowFgo(true)}>Fetch FGO Servants</button>
                     <button type="button" className="btn btn-sm" onClick={() => setShowUpload(true)}>Upload CSV</button>
                     <Link to="/datasets" className="btn btn-sm">Open Dataset Library</Link>
                   </div>
@@ -310,6 +325,16 @@ export function MiniGameEditor({
                     <button type="button" className="btn btn-sm" onClick={() => setShowCreate(true)}>Create Dataset</button>
                     <button type="button" className="btn btn-sm" onClick={() => setShowUpload(true)}>Upload CSV</button>
                     <button type="button" className="btn btn-sm" onClick={() => setShowPaste(true)}>Paste Table</button>
+                  </div>
+                  <div className="fgo-inline-preset">
+                    <div className="fgo-inline-preset-head">
+                      <strong>FGO Servants</strong>
+                      <span className="badge-live">Live preset</span>
+                    </div>
+                    <p className="field-hint">Fetches up-to-date servant data from {FGO_SERVANTS_SOURCE_LABEL}. Choose JP or NA when fetching. Includes class, rarity, traits, stats, face images, NP info, and skills when available.</p>
+                    <button type="button" className="btn btn-sm btn-primary fgo-fetch-btn" onClick={() => setShowFgo(true)}>
+                      Fetch FGO Servants
+                    </button>
                   </div>
                 </div>
               )}
@@ -396,7 +421,18 @@ export function MiniGameEditor({
         />
       )}
       {showCreate && (
-        <CreateDatasetModal onCancel={() => setShowCreate(false)} onCreate={handleCreateDataset} />
+        <CreateDatasetModal
+          onCancel={() => setShowCreate(false)}
+          onCreate={handleCreateDataset}
+          onFetchFgo={() => { setShowCreate(false); setShowFgo(true); }}
+        />
+      )}
+      {showFgo && (
+        <FgoServantsModal
+          fromMiniGame
+          onCancel={() => setShowFgo(false)}
+          onSaved={handleFgoSaved}
+        />
       )}
       {showUpload && (
         <UploadCsvModal onCancel={() => setShowUpload(false)} onImport={handleImportDataset} />

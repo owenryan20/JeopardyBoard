@@ -1,0 +1,15 @@
+.toast-host {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  padding: 12px 20px;
+  background: #1e293b;
+  color: #fff;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  max-width: min(480px, calc(100vw - 32px));
+  text-align: center;
+}

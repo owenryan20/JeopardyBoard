@@ -63,6 +63,35 @@ function splitParts(value: string): string[] {
   return value.split(/[\s,;/|]+/).map((p) => p.trim()).filter(Boolean);
 }
 
+/** Split comma-delimited tag lists without breaking multi-word trait names. */
+export function splitTagList(value: string): string[] {
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const part of value.split(/[,;|/]+/)) {
+    const trimmed = part.trim();
+    if (!trimmed) continue;
+    const key = normalizeValue(trimmed);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tags.push(trimmed);
+  }
+  return tags;
+}
+
+function sharedTagLabels(guessedTags: string[], answerTags: string[]): string[] {
+  const answerByNorm = new Map(answerTags.map((t) => [normalizeValue(t), t]));
+  const shared: string[] = [];
+  const seen = new Set<string>();
+  for (const tag of guessedTags) {
+    const norm = normalizeValue(tag);
+    const label = answerByNorm.get(norm);
+    if (!label || seen.has(norm)) continue;
+    seen.add(norm);
+    shared.push(label);
+  }
+  return shared;
+}
+
 function compareNumeric(guessed: string, answer: string): ComparisonResult {
   const gn = parseNumber(guessed);
   const an = parseNumber(answer);
@@ -84,13 +113,17 @@ function parseNumber(value: string): number | null {
 }
 
 function compareTags(guessed: string, answer: string): ComparisonResult {
-  const gTags = splitParts(guessed).map(normalizeValue);
-  const aTags = splitParts(answer).map(normalizeValue);
+  const gTags = splitTagList(guessed);
+  const aTags = splitTagList(answer);
   if (gTags.length === 0 || aTags.length === 0) {
     return { kind: 'miss', label: 'No match', icon: '×' };
   }
-  const shared = gTags.filter((t) => aTags.includes(t));
-  if (shared.length === aTags.length && shared.length === gTags.length) {
+
+  const shared = sharedTagLabels(gTags, aTags);
+  const gNorm = new Set(gTags.map(normalizeValue));
+  const aNorm = new Set(aTags.map(normalizeValue));
+
+  if (shared.length === aNorm.size && shared.length === gNorm.size) {
     return { kind: 'match', label: 'Match', icon: '✓', sharedTags: shared };
   }
   if (shared.length > 0) {

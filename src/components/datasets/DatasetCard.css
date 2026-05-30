@@ -17,6 +17,18 @@
   font-size: 16px;
 }
 
+.dataset-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.dataset-card-source {
+  margin: 0;
+  font-size: 12px;
+}
+
 .dataset-card-meta {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
