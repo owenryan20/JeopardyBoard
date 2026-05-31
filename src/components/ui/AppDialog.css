@@ -1,0 +1,30 @@
+/* Must beat .modal-overlay (z-index: 100) regardless of stylesheet order */
+.modal-overlay.app-dialog-overlay {
+  z-index: var(--z-app-dialog);
+}
+
+.app-dialog {
+  max-width: 440px;
+}
+
+.app-dialog-desc {
+  margin: 0;
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.5;
+}
+
+.app-dialog-input-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
+}
+
+.app-dialog-input-label span {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.app-dialog-destructive .modal-header h2 {
+  color: #f87171;
+}

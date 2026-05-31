@@ -1,10 +1,25 @@
-import type { Board, BoardDataset, Clue, MiniGameConfig } from '../types/board';
-import { isMiniGameTile } from '../types/board';
+import type {
+  Board,
+  BoardDataset,
+  CharacterGuessMiniGameConfig,
+  Clue,
+  CropRevealMiniGameConfig,
+  FinalJeopardy,
+  MiniGameConfig,
+} from '../types/board';
+import { isCharacterGuessConfig, isCropRevealConfig, isMiniGameTile } from '../types/board';
+import { migrateClueAttachments } from './attachments';
+import { migrateBoardWithTheme } from './boardTheme';
+import { createDefaultCropRevealConfig, validateCropRevealConfig } from './cropReveal';
 import { appDatasetToBoardDataset } from './datasetConvert';
 import { applyFgoDatasetToMiniGame, getFgoDisambiguationFields, shouldApplyFgoDefaults } from './fgoMiniGameDefaults';
 import { getAppDataset } from './datasetStorage';
+import {
+  createEmptyFinalTile,
+  createDefaultFinalJeopardy,
+  FINAL_JEOPARDY_TILE_ID,
+} from './finalJeopardy';
 import { createId } from './ids';
-import { mediaForSave } from './mediaUtils';
 import {
   buildDefaultAttributes,
   getRowId,
@@ -12,7 +27,7 @@ import {
   suggestNameField,
 } from './csvParse';
 
-export function createDefaultMiniGameConfig(value: number): MiniGameConfig {
+export function createDefaultMiniGameConfig(value: number): CharacterGuessMiniGameConfig {
   return {
     gameType: 'characterGuess',
     title: 'Guess the Character',
@@ -47,10 +62,25 @@ export function createMiniGameTile(value: number): Clue {
   };
 }
 
+export function createCropRevealTile(value: number): Clue {
+  return {
+    id: createId(),
+    type: 'miniGame',
+    value,
+    clue: '',
+    answer: '',
+    hostNotes: '',
+    isDailyDouble: false,
+    tags: [],
+    isUsed: false,
+    miniGame: createDefaultCropRevealConfig(value),
+  };
+}
+
 export function applyDatasetToMiniGame(
-  config: MiniGameConfig,
+  config: CharacterGuessMiniGameConfig,
   dataset: BoardDataset,
-): MiniGameConfig {
+): CharacterGuessMiniGameConfig {
   if (shouldApplyFgoDefaults(dataset)) {
     return applyFgoDatasetToMiniGame(config, dataset);
   }
@@ -86,14 +116,17 @@ export function getRowById(dataset: BoardDataset, rowId: string): Record<string,
   return dataset.rows.find((r) => getRowId(r) === rowId);
 }
 
-export function getCorrectAnswerRow(board: Board, config: MiniGameConfig): Record<string, string> | undefined {
+export function getCorrectAnswerRow(
+  board: Board,
+  config: CharacterGuessMiniGameConfig,
+): Record<string, string> | undefined {
   const dataset = getDataset(board, config.datasetId);
   if (!dataset) return undefined;
   return getRowById(dataset, config.correctAnswerId);
 }
 
 export function getCorrectAnswerName(board: Board, clue: Clue): string {
-  if (!clue.miniGame) return '';
+  if (!clue.miniGame || !isCharacterGuessConfig(clue.miniGame)) return '';
   const row = getCorrectAnswerRow(board, clue.miniGame);
   if (!row) return '';
   return row[clue.miniGame.fieldMapping.nameField] ?? '';
@@ -120,6 +153,21 @@ export function getMiniGameReadiness(board: Board, clue: Clue): MiniGameReadines
     return { status: 'setupNeeded', label: 'Setup Needed', checklist };
   }
 
+  if (isCropRevealConfig(config)) {
+    const errors = validateCropRevealConfig(config);
+    const checklistCr = [
+      { label: 'Image selected', done: Boolean(config.image.mediaId || config.image.url?.trim()) },
+      { label: 'Correct answer set', done: Boolean(config.correctAnswer.trim()) },
+      { label: 'Crop settings valid', done: errors.length === 0 },
+    ];
+    const allDone = checklistCr.every((c) => c.done);
+    return {
+      status: allDone ? 'ready' : 'setupNeeded',
+      label: allDone ? 'Ready to Play' : 'Setup Needed',
+      checklist: checklistCr,
+    };
+  }
+
   const dataset = getDataset(board, config.datasetId);
   checklist[0].done = Boolean(dataset);
   checklist[1].done = Boolean(config.fieldMapping.nameField);
@@ -144,13 +192,45 @@ export function getMiniGameReadiness(board: Board, clue: Clue): MiniGameReadines
 }
 
 export function migrateBoard(raw: Board): Board {
-  return {
+  const migrated: Board = {
     ...raw,
     datasets: raw.datasets ?? [],
+    finalJeopardy: migrateFinalJeopardy(raw.finalJeopardy),
     categories: raw.categories.map((cat) => ({
       ...cat,
       clues: cat.clues.map((clue) => migrateClue(clue)),
     })),
+  };
+  return migrateBoardWithTheme(migrated);
+}
+
+export function migrateFinalJeopardy(raw: unknown): FinalJeopardy {
+  if (!raw || typeof raw !== 'object') {
+    return createDefaultFinalJeopardy();
+  }
+
+  const obj = raw as Record<string, unknown>;
+
+  if (obj.tile && typeof obj.tile === 'object') {
+    const tileRaw = obj.tile as Partial<Clue> & { value?: number };
+    const tile = migrateClue({
+      ...tileRaw,
+      id: tileRaw.id || FINAL_JEOPARDY_TILE_ID,
+      value: 0,
+    });
+    return {
+      category: typeof obj.category === 'string' ? obj.category : '',
+      tile: { ...tile, value: 0, isDailyDouble: false },
+    };
+  }
+
+  return {
+    category: typeof obj.category === 'string' ? obj.category : '',
+    tile: {
+      ...createEmptyFinalTile(),
+      clue: typeof obj.clue === 'string' ? obj.clue : '',
+      answer: typeof obj.answer === 'string' ? obj.answer : '',
+    },
   };
 }
 
@@ -162,9 +242,38 @@ export function migrateClueFromImport(clue: Partial<Clue> & { id?: string; value
   });
 }
 
+function migrateMiniGameConfig(
+  raw: Partial<MiniGameConfig> | undefined,
+  value: number,
+): MiniGameConfig | undefined {
+  if (!raw) return createDefaultMiniGameConfig(value);
+  if (raw.gameType === 'cropReveal') {
+    const cr = raw as Partial<CropRevealMiniGameConfig>;
+    const defaults = createDefaultCropRevealConfig(value);
+    return {
+      ...defaults,
+      ...cr,
+      gameType: 'cropReveal',
+      image: cr.image ?? defaults.image,
+      acceptedAnswers: Array.isArray(cr.acceptedAnswers) ? cr.acceptedAnswers : [],
+    };
+  }
+  if (raw.gameType === 'characterGuess' || 'datasetId' in raw) {
+    const cg = raw as Partial<CharacterGuessMiniGameConfig>;
+    return {
+      ...createDefaultMiniGameConfig(value),
+      ...cg,
+      gameType: 'characterGuess',
+      fieldMapping: cg.fieldMapping ?? createDefaultMiniGameConfig(value).fieldMapping,
+      attributes: Array.isArray(cg.attributes) ? cg.attributes : [],
+    };
+  }
+  return createDefaultMiniGameConfig(value);
+}
+
 function migrateClue(clue: Partial<Clue> & { id: string; value: number }): Clue {
   const type = clue.type ?? 'clue';
-  return {
+  const base: Clue = {
     id: clue.id,
     type,
     value: clue.value,
@@ -172,16 +281,18 @@ function migrateClue(clue: Partial<Clue> & { id: string; value: number }): Clue 
     answer: clue.answer ?? '',
     hostNotes: clue.hostNotes ?? '',
     isDailyDouble: Boolean(clue.isDailyDouble),
-    media: mediaForSave(clue.media),
     tags: Array.isArray(clue.tags) ? clue.tags : [],
     isUsed: Boolean(clue.isUsed),
-    miniGame: type === 'miniGame' ? (clue.miniGame ?? createDefaultMiniGameConfig(clue.value)) : clue.miniGame,
+    attachments: clue.attachments,
+    attachmentDisplayMode: clue.attachmentDisplayMode,
+    miniGame: type === 'miniGame' ? migrateMiniGameConfig(clue.miniGame, clue.value) : clue.miniGame,
   };
+  return migrateClueAttachments(base);
 }
 
 export function searchDatasetRows(
   dataset: BoardDataset,
-  config: MiniGameConfig,
+  config: CharacterGuessMiniGameConfig,
   query: string,
 ): Array<{ rowId: string; label: string; row: Record<string, string> }> {
   const q = query.trim().toLowerCase();
@@ -217,7 +328,7 @@ function getRowDisplayLabel(
   return extra ? `${name} (${extra})` : name;
 }
 
-export function getVisibleComparisonAttributes(config: MiniGameConfig) {
+export function getVisibleComparisonAttributes(config: CharacterGuessMiniGameConfig) {
   return config.attributes.filter(
     (a) => a.visible && a.behavior !== 'hidden' && a.behavior !== 'searchName' && a.behavior !== 'image',
   );
@@ -227,7 +338,11 @@ export function tileEditorStatus(clue: Clue, board: Board): 'empty' | 'partial' 
   if (isMiniGameTile(clue)) {
     const r = getMiniGameReadiness(board, clue);
     if (r.status === 'ready') return 'complete';
-    if (r.status === 'missingDataset' || !clue.miniGame?.datasetId) return 'empty';
+    if (isCropRevealConfig(clue.miniGame!)) {
+      if (r.status === 'setupNeeded' && !clue.miniGame.correctAnswer.trim()) return 'empty';
+      return 'partial';
+    }
+    if (r.status === 'missingDataset' || !isCharacterGuessConfig(clue.miniGame!) || !clue.miniGame.datasetId) return 'empty';
     return 'partial';
   }
   const hasClue = clue.clue.trim().length > 0;

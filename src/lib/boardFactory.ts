@@ -2,13 +2,18 @@ import {
   CATEGORY_COUNT,
   DEFAULT_POINT_VALUES,
   MAX_CATEGORY_COUNT,
+  MAX_CLUES_PER_CATEGORY,
   MIN_CATEGORY_COUNT,
+  MIN_CLUES_PER_CATEGORY,
   type Board,
   type Category,
   type Clue,
 } from '../types/board';
-import { isMiniGameTile, isStandardClue } from '../types/board';
+import { isCharacterGuessConfig, isMiniGameTile, isStandardClue } from '../types/board';
+import { createDefaultBoardTheme } from './boardTheme';
+import { createDefaultFinalJeopardy } from './finalJeopardy';
 import { migrateBoard, tileEditorStatus } from './miniGame';
+import { hasAttachments } from './attachments';
 import { hasClueMedia } from './mediaUtils';
 import { createId } from './ids';
 
@@ -54,11 +59,8 @@ export function createDefaultBoard(title = 'Untitled Board'): Board {
       createDefaultCategory(i),
     ),
     datasets: [],
-    finalJeopardy: {
-      category: '',
-      clue: '',
-      answer: '',
-    },
+    finalJeopardy: createDefaultFinalJeopardy(),
+    theme: createDefaultBoardTheme(),
     createdAt: now,
     updatedAt: now,
   };
@@ -115,7 +117,7 @@ export function duplicateBoard(board: Board, title?: string): Board {
         id: createId(),
         isUsed: false,
       };
-      if (copy.miniGame?.datasetId) {
+      if (copy.miniGame && isCharacterGuessConfig(copy.miniGame) && copy.miniGame.datasetId) {
         copy.miniGame = {
           ...copy.miniGame,
           datasetId: datasetIdMap.get(copy.miniGame.datasetId) ?? copy.miniGame.datasetId,
@@ -175,7 +177,12 @@ export function isClueComplete(clue: Clue, board?: Board): boolean {
 
 export function clueStatus(clue: Clue, board?: Board): 'empty' | 'partial' | 'complete' {
   if (board) return tileEditorStatus(clue, board);
-  if (isMiniGameTile(clue)) return clue.miniGame?.correctAnswerId ? 'complete' : 'empty';
+  if (isMiniGameTile(clue)) {
+    if (clue.miniGame && isCharacterGuessConfig(clue.miniGame)) {
+      return clue.miniGame.correctAnswerId ? 'complete' : 'empty';
+    }
+    return 'empty';
+  }
   const hasClue = clue.clue.trim().length > 0;
   const hasAnswer = clue.answer.trim().length > 0;
   if (!hasClue && !hasAnswer) return 'empty';
@@ -183,20 +190,71 @@ export function clueStatus(clue: Clue, board?: Board): 'empty' | 'partial' | 'co
   return 'partial';
 }
 
-export function isTileEmpty(clue: Clue, _board?: Board): boolean {
+export function isTileEmpty(clue: Clue, board?: Board): boolean {
   if (isMiniGameTile(clue)) {
-    return !clue.miniGame?.datasetId;
+    if (board) return tileEditorStatus(clue, board) === 'empty';
+    if (clue.miniGame && isCharacterGuessConfig(clue.miniGame)) {
+      return !clue.miniGame.datasetId;
+    }
+    return !clue.miniGame?.correctAnswer?.trim();
   }
   return isStandardClue(clue) && !clue.clue.trim() && !clue.answer.trim();
 }
 
 export function hasTileContent(clue: Clue, board?: Board): boolean {
   if (!isTileEmpty(clue, board)) return true;
+  if (hasAttachments(clue)) return true;
   if (hasClueMedia(clue.media)) return true;
   if (clue.hostNotes.trim()) return true;
   if (clue.tags.length > 0) return true;
   if (clue.isDailyDouble) return true;
   return false;
+}
+
+/** True when reset should be offered (includes incomplete mini games). */
+export function canResetTile(clue: Clue, board?: Board): boolean {
+  if (isMiniGameTile(clue)) return true;
+  return hasTileContent(clue, board);
+}
+
+export function suggestCluePointValue(clues: Clue[]): number {
+  if (clues.length === 0) return DEFAULT_POINT_VALUES[0] ?? 100;
+  return Math.max(...clues.map((c) => c.value)) + 100;
+}
+
+export function getBoardRowCount(board: Board): number {
+  return board.categories.reduce((max, cat) => Math.max(max, cat.clues.length), 0);
+}
+
+export function addClueToCategory(board: Board, categoryId: string): Board {
+  const category = board.categories.find((c) => c.id === categoryId);
+  if (!category || category.clues.length >= MAX_CLUES_PER_CATEGORY) return board;
+  const value = suggestCluePointValue(category.clues);
+  return {
+    ...board,
+    categories: board.categories.map((cat) =>
+      cat.id === categoryId
+        ? { ...cat, clues: [...cat.clues, createEmptyClue(value)] }
+        : cat,
+    ),
+  };
+}
+
+export function removeClueFromCategory(
+  board: Board,
+  categoryId: string,
+  clueId: string,
+): Board | null {
+  const category = board.categories.find((c) => c.id === categoryId);
+  if (!category || category.clues.length <= MIN_CLUES_PER_CATEGORY) return null;
+  return {
+    ...board,
+    categories: board.categories.map((cat) =>
+      cat.id === categoryId
+        ? { ...cat, clues: cat.clues.filter((c) => c.id !== clueId) }
+        : cat,
+    ),
+  };
 }
 
 export { migrateBoard };

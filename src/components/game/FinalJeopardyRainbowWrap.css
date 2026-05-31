@@ -1,0 +1,80 @@
+.fj-rainbow-wrap {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+  border-radius: var(--radius-sm);
+  isolation: isolate;
+}
+
+.fj-rainbow-wrap-block {
+  display: flex;
+  width: 100%;
+}
+
+.fj-rainbow-spin {
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.25s ease;
+}
+
+.fj-rainbow-spin::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 280%;
+  height: 280%;
+  transform: translate(-50%, -50%);
+  background: conic-gradient(
+    from 0deg,
+    #ff6ec7 0deg,
+    #ffb347 45deg,
+    #fff59d 90deg,
+    #7dffb3 135deg,
+    #6ecbff 180deg,
+    #b388ff 225deg,
+    #ff8ad8 270deg,
+    #ffd54f 315deg,
+    #ff6ec7 360deg
+  );
+  animation: fj-rainbow-orbit 1.6s linear infinite;
+}
+
+.fj-rainbow-wrap:hover .fj-rainbow-spin,
+.fj-rainbow-wrap:focus-within .fj-rainbow-spin {
+  opacity: 1;
+}
+
+.fj-rainbow-wrap > :not(.fj-rainbow-spin) {
+  position: relative;
+  z-index: 1;
+  border-radius: calc(var(--radius-sm) - 2px);
+}
+
+.fj-rainbow-wrap:hover > .btn,
+.fj-rainbow-wrap:focus-within > .btn {
+  box-shadow: 0 0 0 2px var(--game-panel, #132238);
+}
+
+.fj-rainbow-wrap:hover > .clue-tile,
+.fj-rainbow-wrap:focus-within > .clue-tile {
+  box-shadow: 0 0 0 2px var(--color-surface, #fff);
+}
+
+@keyframes fj-rainbow-orbit {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fj-rainbow-spin::before {
+    animation: none;
+    transform: translate(-50%, -50%) rotate(45deg);
+  }
+}

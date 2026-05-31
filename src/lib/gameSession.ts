@@ -1,14 +1,20 @@
 import type { GameSession, Team } from '../types/board';
+import { migrateTeam } from './boardTheme';
 import { createId } from './ids';
 
 const DEFAULT_TEAM_NAMES = ['Alpha', 'Bravo', 'Charlie'];
 
 export function createDefaultTeams(count = 3): Team[] {
-  return Array.from({ length: count }, (_, i) => ({
-    id: createId(),
-    name: DEFAULT_TEAM_NAMES[i] ?? `Team ${i + 1}`,
-    score: 0,
-  }));
+  return Array.from({ length: count }, (_, i) =>
+    migrateTeam(
+      {
+        id: createId(),
+        name: DEFAULT_TEAM_NAMES[i] ?? `Team ${i + 1}`,
+        score: 0,
+      },
+      i,
+    ),
+  );
 }
 
 export function createDefaultSession(boardId: string): GameSession {
@@ -21,6 +27,8 @@ export function createDefaultSession(boardId: string): GameSession {
     finalJeopardyWagers: {},
     finalJeopardyOutcomes: {},
     miniGameProgress: {},
+    cropRevealProgress: {},
+    attachmentRevealIndex: {},
   };
 }
 
@@ -32,6 +40,9 @@ export function normalizeGameSession(raw: GameSession): GameSession {
     finalJeopardyWagers: raw.finalJeopardyWagers ?? {},
     finalJeopardyOutcomes: raw.finalJeopardyOutcomes ?? {},
     miniGameProgress: raw.miniGameProgress ?? {},
+    cropRevealProgress: raw.cropRevealProgress ?? {},
+    attachmentRevealIndex: raw.attachmentRevealIndex ?? {},
+    teams: raw.teams.map((t, i) => migrateTeam(t, i)),
   };
 }
 

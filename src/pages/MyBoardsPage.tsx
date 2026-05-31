@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { BoardCard } from '../components/dashboard/BoardCard';
+import { BoardImportDropOverlay } from '../components/import/BoardImportDropOverlay';
 import { ImportBoardButton } from '../components/import/ImportBoardButton';
 import { useBoards } from '../hooks/useBoards';
 import './DashboardPage.css';
@@ -20,6 +21,7 @@ export function MyBoardsPage() {
 
   return (
     <div className="page dashboard-page">
+      <BoardImportDropOverlay />
       <header className="page-header">
         <div>
           <h1>My Boards</h1>

@@ -1,0 +1,103 @@
+.attachment-audio-card {
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.attachment-audio-element {
+  display: none;
+}
+
+.attachment-audio-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.attachment-audio-play-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: var(--game-gold, #fbbf24);
+  color: #0a1628;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.12s ease, filter 0.12s ease;
+}
+
+.attachment-audio-play-btn:hover {
+  filter: brightness(1.08);
+  transform: scale(1.04);
+}
+
+.attachment-audio-play-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.attachment-audio-scrub {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+}
+
+.attachment-audio-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.attachment-audio-range-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.attachment-audio-range-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--game-gold, #fbbf24);
+  transition: width 0.1s linear;
+}
+
+.attachment-audio-time {
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+  color: rgba(255, 255, 255, 0.65);
+  flex-shrink: 0;
+  min-width: 4.5rem;
+  text-align: right;
+}
+
+/* Clue overlay — use full modal content width */
+.clue-overlay-media .attachment-audio-card {
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.clue-attachments .attachment-audio-card + .attachment-audio-card {
+  margin-top: 0;
+}

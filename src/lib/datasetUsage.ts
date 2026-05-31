@@ -1,5 +1,5 @@
 import type { Board } from '../types/board';
-import { isMiniGameTile } from '../types/board';
+import { isCharacterGuessConfig, isMiniGameTile } from '../types/board';
 import { loadBoards } from './storage';
 
 export interface DatasetUsage {
@@ -17,7 +17,12 @@ export function getDatasetUsage(datasetId: string): DatasetUsage {
     let usedInBoard = false;
     for (const cat of board.categories) {
       for (const clue of cat.clues) {
-        if (isMiniGameTile(clue) && clue.miniGame?.datasetId === datasetId) {
+        if (
+          isMiniGameTile(clue)
+          && clue.miniGame
+          && isCharacterGuessConfig(clue.miniGame)
+          && clue.miniGame.datasetId === datasetId
+        ) {
           miniGameCount++;
           usedInBoard = true;
         }
@@ -44,7 +49,12 @@ export function findMiniGamesUsingDataset(datasetId: string, boards: Board[] = l
   for (const board of boards) {
     for (const cat of board.categories) {
       for (const clue of cat.clues) {
-        if (isMiniGameTile(clue) && clue.miniGame?.datasetId === datasetId) {
+        if (
+          isMiniGameTile(clue)
+          && clue.miniGame
+          && isCharacterGuessConfig(clue.miniGame)
+          && clue.miniGame.datasetId === datasetId
+        ) {
           results.push({ boardId: board.id, boardTitle: board.title, clueId: clue.id });
         }
       }

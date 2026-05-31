@@ -1,5 +1,6 @@
-import type { Board, Category, Clue, FinalJeopardy } from '../types/board';
+import type { Board, Category, Clue } from '../types/board';
 import { CATEGORY_COUNT, DEFAULT_POINT_VALUES } from '../types/board';
+import { createDefaultFinalJeopardy, finalJeopardyFromLegacy } from './finalJeopardy';
 import { createId } from './ids';
 
 export interface BoardTemplate {
@@ -9,7 +10,8 @@ export interface BoardTemplate {
   emoji: string;
   categoryNames: string[];
   sampleClues?: Partial<Record<string, { clue: string; answer: string; tags?: string[] }>>;
-  finalJeopardy?: FinalJeopardy;
+  /** Legacy flat fields — migrated to `tile` on import. */
+  finalJeopardy?: { category?: string; clue?: string; answer?: string };
 }
 
 function clueKey(categoryIndex: number, value: number): string {
@@ -205,7 +207,9 @@ export function createBoardFromTemplate(template: BoardTemplate, title?: string)
       createCategoryFromTemplate(i, template),
     ),
     datasets: [],
-    finalJeopardy: template.finalJeopardy ?? { category: '', clue: '', answer: '' },
+    finalJeopardy: template.finalJeopardy
+      ? finalJeopardyFromLegacy(template.finalJeopardy)
+      : createDefaultFinalJeopardy(),
     createdAt: now,
     updatedAt: now,
   };

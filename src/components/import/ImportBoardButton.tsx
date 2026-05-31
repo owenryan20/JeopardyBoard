@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import { importBoardFromFile } from '../../lib/boardImport';
+import { applyBoardImportAction, resolveBoardImportAction } from '../../lib/boardImportFlow';
 import { importBoard } from '../../hooks/useBoards';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,9 +22,10 @@ export function ImportBoardButton({ className = 'btn', onImported }: ImportBoard
       setError(result.error);
       return;
     }
-    const board = importBoard(result.board);
-    onImported?.(board.id);
-    navigate(`/boards/${board.id}/edit`);
+    const action = await resolveBoardImportAction(result.board);
+    const boardId = await applyBoardImportAction(action, importBoard);
+    onImported?.(boardId);
+    navigate(`/boards/${boardId}/edit`);
   };
 
   return (

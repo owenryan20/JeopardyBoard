@@ -2,7 +2,7 @@ import type { Board } from '../types/board';
 import { migrateBoard } from './boardFactory';
 import { boardDatasetToAppDataset } from './datasetConvert';
 import { upsertAppDataset } from './datasetStorage';
-import { migrateClueFromImport } from './miniGame';
+import { migrateClueFromImport, migrateFinalJeopardy } from './miniGame';
 
 export function validateBoardImport(data: unknown): { ok: true; board: Board } | { ok: false; error: string } {
   if (!data || typeof data !== 'object') {
@@ -68,9 +68,11 @@ function normalizeImportedBoard(raw: Board): Board {
     categories: raw.categories.map((cat) => ({
       id: cat.id || crypto.randomUUID(),
       name: cat.name,
+      style: cat.style,
       clues: cat.clues.map((clue) => migrateClueFromImport(clue)),
     })),
-    finalJeopardy: raw.finalJeopardy ?? { category: '', clue: '', answer: '' },
+    finalJeopardy: migrateFinalJeopardy(raw.finalJeopardy),
+    theme: raw.theme,
     createdAt: raw.createdAt ?? now,
     updatedAt: now,
   };

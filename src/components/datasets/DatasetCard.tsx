@@ -8,6 +8,7 @@ import { datasetToCsv } from '../../lib/csvParse';
 import { downloadFile } from '../../lib/export';
 import { formatDatasetUsage, getDatasetUsage } from '../../lib/datasetUsage';
 import { formatFetchedAt } from '../../lib/toast';
+import { confirmDialog } from '../../lib/dialog';
 import { formatFgoExportLabel, formatFgoRegionLabel } from '../../lib/atlasAcademyFgo';
 import { FgoRefreshWarningModal } from './FgoServantsModal';
 import './DatasetCard.css';
@@ -42,13 +43,24 @@ export function DatasetCard({
     setMenuOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (usage.miniGameCount > 0) {
-      if (!window.confirm(`This dataset is used by ${usage.miniGameCount} Mini Game tile(s). Deleting it will make those tiles need a replacement dataset before they can be played. Delete anyway?`)) {
-        return;
-      }
-    } else if (!window.confirm(`Delete "${dataset.name}"?`)) {
-      return;
+      const ok = await confirmDialog({
+        title: 'Delete dataset?',
+        description: `This dataset is used by ${usage.miniGameCount} Mini Game tile(s). Deleting it will make those tiles need a replacement dataset before they can be played.`,
+        confirmLabel: 'Delete anyway',
+        variant: 'destructive',
+        closeOnBackdrop: false,
+      });
+      if (!ok) return;
+    } else {
+      const ok = await confirmDialog({
+        title: `Delete "${dataset.name}"?`,
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+        closeOnBackdrop: false,
+      });
+      if (!ok) return;
     }
     onDelete(dataset.id);
   };

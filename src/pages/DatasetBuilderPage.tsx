@@ -25,6 +25,7 @@ import { datasetToCsv } from '../lib/csvParse';
 import { downloadFile } from '../lib/export';
 import { replaceAppDatasetData } from '../lib/datasetStorage';
 import { createId } from '../lib/ids';
+import { confirmDialog, promptDialog } from '../lib/dialog';
 import { formatDatasetUsage, getDatasetUsage } from '../lib/datasetUsage';
 import { formatFetchedAt, showToast } from '../lib/toast';
 import { formatFgoExportLabel, formatFgoRegionLabel } from '../lib/atlasAcademyFgo';
@@ -125,13 +126,23 @@ export function DatasetBuilderPage() {
     return { ...d, rows };
   });
 
-  const deleteRow = (rowId: string) => {
-    if (!window.confirm('Delete this row?')) return;
+  const deleteRow = async (rowId: string) => {
+    const ok = await confirmDialog({
+      title: 'Delete row?',
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      closeOnBackdrop: false,
+    });
+    if (!ok) return;
     updateDraft((d) => ({ ...d, rows: d.rows.filter((r) => r.id !== rowId) }));
   };
 
-  const addColumn = () => {
-    const name = window.prompt('Column name:');
+  const addColumn = async () => {
+    const name = await promptDialog({
+      title: 'New column',
+      inputLabel: 'Column name',
+      requireInput: true,
+    });
     if (!name?.trim()) return;
     updateDraft((d) => ({
       ...d,
@@ -140,10 +151,15 @@ export function DatasetBuilderPage() {
     }));
   };
 
-  const renameColumn = (colId: string) => {
+  const renameColumn = async (colId: string) => {
     const col = draft.columns.find((c) => c.id === colId);
     if (!col) return;
-    const name = window.prompt('Rename column:', col.name);
+    const name = await promptDialog({
+      title: 'Rename column',
+      defaultValue: col.name,
+      inputLabel: 'Column name',
+      requireInput: true,
+    });
     if (!name?.trim() || name === col.name) return;
     const oldName = col.name;
     updateDraft((d) => ({
@@ -158,9 +174,16 @@ export function DatasetBuilderPage() {
     }));
   };
 
-  const deleteColumn = (colId: string) => {
+  const deleteColumn = async (colId: string) => {
     const col = draft.columns.find((c) => c.id === colId);
-    if (!col || !window.confirm(`Delete column "${col.name}"?`)) return;
+    if (!col) return;
+    const ok = await confirmDialog({
+      title: `Delete column "${col.name}"?`,
+      confirmLabel: 'Delete',
+      variant: 'destructive',
+      closeOnBackdrop: false,
+    });
+    if (!ok) return;
     updateDraft((d) => ({
       ...d,
       columns: d.columns.filter((c) => c.id !== colId),
@@ -214,10 +237,25 @@ export function DatasetBuilderPage() {
     setShowPaste(false);
   };
 
-  const handleDeleteDataset = () => {
+  const handleDeleteDataset = async () => {
     if (usage.miniGameCount > 0) {
-      if (!window.confirm(`This dataset is used by ${usage.miniGameCount} Mini Game tile(s). Delete anyway?`)) return;
-    } else if (!window.confirm(`Delete "${draft.name}"?`)) return;
+      const ok = await confirmDialog({
+        title: 'Delete dataset?',
+        description: `This dataset is used by ${usage.miniGameCount} Mini Game tile(s). Delete anyway?`,
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+        closeOnBackdrop: false,
+      });
+      if (!ok) return;
+    } else {
+      const ok = await confirmDialog({
+        title: `Delete "${draft.name}"?`,
+        confirmLabel: 'Delete',
+        variant: 'destructive',
+        closeOnBackdrop: false,
+      });
+      if (!ok) return;
+    }
     removeDataset(draft.id);
     navigate('/datasets');
   };

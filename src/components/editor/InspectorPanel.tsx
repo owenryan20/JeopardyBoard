@@ -1,9 +1,9 @@
-import { useRef, useState, type CSSProperties } from 'react';
-import { AlertTriangle, Check, Copy, Download, Eye, FileJson, Pencil, Printer, Trash2, Upload } from 'lucide-react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { AlertTriangle, Check, Copy, Download, Eye, FileJson, Palette, Pencil, Printer, Trash2, Upload } from 'lucide-react';
 import type { Board, Clue } from '../../types/board';
-import { isMiniGameTile } from '../../types/board';
+import { isCharacterGuessConfig, isCropRevealConfig, isMiniGameTile } from '../../types/board';
 import { formatPeso } from '../../lib/currency';
-import { findClue, hasTileContent } from '../../lib/boardFactory';
+import { canResetTile, findClue, isTileEmpty } from '../../lib/boardFactory';
 import { getBoardReadiness, getClueStatusLabel } from '../../lib/boardStats';
 import {
   getCorrectAnswerName,
@@ -18,19 +18,22 @@ import {
   openPrintableBoard,
 } from '../../lib/export';
 import { exportBoardZip, exportBoardZipBackup } from '../../lib/boardZip';
-import { importBoardFromFile } from '../../lib/boardImport';
+import { importBoardFromFile, pickBoardImportFile } from '../../lib/boardImport';
 import { importBoard } from '../../hooks/useBoards';
+import { BoardAppearanceModal } from './BoardAppearanceModal';
 import './InspectorPanel.css';
 
 interface InspectorPanelProps {
   board: Board;
   selectedCategoryId: string | null;
   selectedClueId: string | null;
-  teams?: { name: string; score: number; color: string }[];
-  onEditMiniGame?: () => void;
+  finalSelected?: boolean;
+  onBoardChange?: (update: Board | ((board: Board) => Board)) => void;
+  onEditTile?: () => void;
   onPreviewMiniGame?: () => void;
   onDuplicateTile?: () => void;
   onResetTile?: () => void;
+  onRemoveClue?: () => void;
 }
 
 const TEAM_COLORS = ['#3b82f6', '#a855f7', '#14b8a6'];
@@ -39,11 +42,13 @@ export function InspectorPanel({
   board,
   selectedCategoryId,
   selectedClueId,
-  teams,
-  onEditMiniGame,
+  finalSelected = false,
+  onBoardChange,
+  onEditTile,
   onPreviewMiniGame,
   onDuplicateTile,
   onResetTile,
+  onRemoveClue,
 }: InspectorPanelProps) {
   const readiness = getBoardReadiness(board);
   const selected =
@@ -51,8 +56,16 @@ export function InspectorPanel({
       ? findClue(board, selectedCategoryId, selectedClueId)
       : null;
 
+  const previewTeams =
+    [
+      { name: 'Alpha', score: 1200, color: TEAM_COLORS[0] },
+      { name: 'Bravo', score: 800, color: TEAM_COLORS[1] },
+      { name: 'Charlie', score: 1500, color: TEAM_COLORS[2] },
+    ];
+
   const [copyMsg, setCopyMsg] = useState<string | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleImportFile = async (file: File) => {
@@ -65,14 +78,6 @@ export function InspectorPanel({
     importBoard({ ...result.board, id: board.id, title: result.board.title });
     window.location.reload();
   };
-
-  const previewTeams =
-    teams ??
-    [
-      { name: 'Alpha', score: 1200, color: TEAM_COLORS[0] },
-      { name: 'Bravo', score: 800, color: TEAM_COLORS[1] },
-      { name: 'Charlie', score: 1500, color: TEAM_COLORS[2] },
-    ];
 
   return (
     <aside className="inspector" aria-label="Board inspector">
@@ -116,14 +121,20 @@ export function InspectorPanel({
       </section>
 
       <section className="inspector-section card">
-        <h3>{selected && isMiniGameTile(selected.clue) ? 'Selected Tile' : 'Selected Clue'}</h3>
-        {selected ? (
+        <h3>{finalSelected ? 'Final Jeopardy' : selected && isMiniGameTile(selected.clue) ? 'Selected Tile' : 'Selected Clue'}</h3>
+        {finalSelected ? (
+          <FinalJeopardyDetails
+            board={board}
+            onEdit={onEditTile}
+            onReset={onResetTile}
+          />
+        ) : selected ? (
           isMiniGameTile(selected.clue) ? (
             <MiniGameTileDetails
               board={board}
               categoryName={selected.category.name}
               clue={selected.clue}
-              onEdit={onEditMiniGame}
+              onEdit={onEditTile}
               onPreview={onPreviewMiniGame}
               onDuplicate={onDuplicateTile}
               onReset={onResetTile}
@@ -133,7 +144,9 @@ export function InspectorPanel({
               categoryName={selected.category.name}
               clue={selected.clue}
               board={board}
+              onEdit={onEditTile}
               onReset={onResetTile}
+              onRemove={onRemoveClue}
             />
           )
         ) : (
@@ -199,8 +212,9 @@ export function InspectorPanel({
           onDragLeave={(e) => e.currentTarget.classList.remove('drag-over')}
           onDrop={(e) => {
             e.preventDefault();
+            e.stopPropagation();
             e.currentTarget.classList.remove('drag-over');
-            const f = e.dataTransfer.files[0];
+            const f = pickBoardImportFile(e.dataTransfer.files);
             if (f) void handleImportFile(f);
           }}
         >
@@ -245,7 +259,78 @@ export function InspectorPanel({
           ))}
         </div>
       </section>
+
+      {onBoardChange && (
+        <section className="inspector-section card">
+          <h3>Board Appearance</h3>
+          <p className="field-hint">Customize colors, background, and category headers with a live board preview.</p>
+          <button
+            type="button"
+            className="btn btn-primary appearance-open-btn"
+            onClick={() => setAppearanceOpen(true)}
+          >
+            <Palette size={16} aria-hidden="true" />
+            Customize appearance
+          </button>
+        </section>
+      )}
+
+      {appearanceOpen && onBoardChange && (
+        <BoardAppearanceModal
+          board={board}
+          selectedCategory={
+            selectedCategoryId
+              ? board.categories.find((c) => c.id === selectedCategoryId) ?? null
+              : null
+          }
+          onBoardChange={onBoardChange}
+          onClose={() => setAppearanceOpen(false)}
+        />
+      )}
     </aside>
+  );
+}
+
+function InspectorHiddenAnswerField({
+  answer,
+  resetKey,
+}: {
+  answer: string;
+  resetKey: string;
+}) {
+  const [showAnswer, setShowAnswer] = useState(false);
+
+  useEffect(() => {
+    setShowAnswer(false);
+  }, [resetKey]);
+
+  useEffect(() => {
+    if (!showAnswer) return;
+    const hide = () => setShowAnswer(false);
+    document.addEventListener('click', hide, true);
+    return () => document.removeEventListener('click', hide, true);
+  }, [showAnswer]);
+
+  return (
+    <div>
+      <dt>Correct Answer</dt>
+      <dd>
+        {showAnswer ? (
+          answer || '—'
+        ) : (
+          <button
+            type="button"
+            className="inspector-answer-hidden"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowAnswer(true);
+            }}
+          >
+            Hidden
+          </button>
+        )}
+      </dd>
+    </div>
   );
 }
 
@@ -266,11 +351,13 @@ function MiniGameTileDetails({
   onDuplicate?: () => void;
   onReset?: () => void;
 }) {
-  const config = clue.miniGame!;
+  const config = clue.miniGame;
   const readiness = getMiniGameReadiness(board, clue);
-  const dataset = getDataset(board, config.datasetId);
-  const visibleAttrs = getVisibleComparisonAttributes(config);
-  const answerName = getCorrectAnswerName(board, clue);
+  const isCrop = config && isCropRevealConfig(config);
+  const cgConfig = config && isCharacterGuessConfig(config) ? config : null;
+  const dataset = cgConfig ? getDataset(board, cgConfig.datasetId) : undefined;
+  const visibleAttrs = cgConfig ? getVisibleComparisonAttributes(cgConfig) : [];
+  const answerName = cgConfig ? getCorrectAnswerName(board, clue) : config && isCropRevealConfig(config) ? config.correctAnswer : '';
 
   return (
     <div className="minigame-inspector">
@@ -281,7 +368,7 @@ function MiniGameTileDetails({
         </div>
         <div>
           <dt>Game</dt>
-          <dd>Character Guess</dd>
+          <dd>{isCrop ? 'Crop Reveal' : 'Character Guess'}</dd>
         </div>
         <div>
           <dt>Category</dt>
@@ -289,24 +376,27 @@ function MiniGameTileDetails({
         </div>
         <div>
           <dt>Point Value</dt>
-          <dd>{config.pointValue}</dd>
+          <dd>{config?.pointValue ?? '—'}</dd>
         </div>
+        {cgConfig && (
         <div>
           <dt>Dataset</dt>
-          <dd>{dataset?.name ?? (config.datasetId ? 'Missing dataset' : 'None')}</dd>
+          <dd>{dataset?.name ?? (cgConfig.datasetId ? 'Missing dataset' : 'None')}</dd>
         </div>
-        <div>
-          <dt>Correct Answer</dt>
-          <dd>{answerName || '—'}</dd>
-        </div>
+        )}
+        <InspectorHiddenAnswerField answer={answerName} resetKey={clue.id} />
+        {cgConfig && (
+        <>
         <div>
           <dt>Visible Attributes</dt>
           <dd>{visibleAttrs.length > 0 ? visibleAttrs.map((a) => a.displayName).join(', ') : '—'}</dd>
         </div>
         <div>
           <dt>Guess Limit</dt>
-          <dd>{config.guessLimit}</dd>
+          <dd>{cgConfig.guessLimit}</dd>
         </div>
+        </>
+        )}
         <div>
           <dt>Status</dt>
           <dd>
@@ -327,7 +417,7 @@ function MiniGameTileDetails({
       </ul>
 
       <div className="inspector-actions mg-inspector-actions">
-        {onEdit && (
+        {onEdit && !isTileEmpty(clue, board) && (
           <button type="button" className="btn btn-sm btn-primary" onClick={onEdit}>
             <Pencil size={14} aria-hidden="true" /> Edit Mini Game
           </button>
@@ -342,7 +432,7 @@ function MiniGameTileDetails({
             <Copy size={14} aria-hidden="true" /> Duplicate Tile
           </button>
         )}
-        {onReset && hasTileContent(clue, board) && (
+        {onReset && canResetTile(clue, board) && (
           <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
             <Trash2 size={14} aria-hidden="true" /> Reset Tile
           </button>
@@ -352,16 +442,64 @@ function MiniGameTileDetails({
   );
 }
 
+function FinalJeopardyDetails({
+  board,
+  onEdit,
+  onReset,
+}: {
+  board: Board;
+  onEdit?: () => void;
+  onReset?: () => void;
+}) {
+  const tile = board.finalJeopardy.tile;
+  return (
+    <>
+      <dl className="selected-clue-dl">
+        <div>
+          <dt>Category</dt>
+          <dd>{board.finalJeopardy.category || '—'}</dd>
+        </div>
+        <div>
+          <dt>Type</dt>
+          <dd>{isMiniGameTile(tile) ? 'Mini Game' : 'Standard Clue'}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{getClueStatusLabel(tile, board)}</dd>
+        </div>
+      </dl>
+      {(onEdit && !isTileEmpty(tile, board)) || (onReset && canResetTile(tile, board)) ? (
+        <div className="inspector-actions mg-inspector-actions">
+          {onEdit && !isTileEmpty(tile, board) && (
+            <button type="button" className="btn btn-sm btn-primary" onClick={onEdit}>
+              <Pencil size={14} aria-hidden="true" /> Edit Final Jeopardy
+            </button>
+          )}
+          {onReset && canResetTile(tile, board) && (
+            <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
+              <Trash2 size={14} aria-hidden="true" /> Reset Final Jeopardy
+            </button>
+          )}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function SelectedClueDetails({
   categoryName,
   clue,
   board,
+  onEdit,
   onReset,
+  onRemove,
 }: {
   categoryName: string;
   clue: Clue;
   board: Board;
+  onEdit?: () => void;
   onReset?: () => void;
+  onRemove?: () => void;
 }) {
   return (
     <>
@@ -374,6 +512,7 @@ function SelectedClueDetails({
         <dt>Point Value</dt>
         <dd>{clue.value}</dd>
       </div>
+      <InspectorHiddenAnswerField answer={clue.answer} resetKey={clue.id} />
       <div>
         <dt>Status</dt>
         <dd>{getClueStatusLabel(clue)}</dd>
@@ -399,13 +538,25 @@ function SelectedClueDetails({
         </div>
       )}
     </dl>
-    {onReset && hasTileContent(clue, board) && (
+    {(onEdit && !isTileEmpty(clue, board)) || (onReset && canResetTile(clue, board)) || onRemove ? (
       <div className="inspector-actions mg-inspector-actions">
-        <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
-          <Trash2 size={14} aria-hidden="true" /> Reset Tile
-        </button>
+        {onEdit && !isTileEmpty(clue, board) && (
+          <button type="button" className="btn btn-sm btn-primary" onClick={onEdit}>
+            <Pencil size={14} aria-hidden="true" /> Edit Clue
+          </button>
+        )}
+        {onReset && canResetTile(clue, board) && (
+          <button type="button" className="btn btn-sm btn-danger" onClick={onReset}>
+            <Trash2 size={14} aria-hidden="true" /> Reset Tile
+          </button>
+        )}
+        {onRemove && (
+          <button type="button" className="btn btn-sm btn-danger" onClick={onRemove}>
+            <Trash2 size={14} aria-hidden="true" /> Remove Tile
+          </button>
+        )}
       </div>
-    )}
+    ) : null}
     </>
   );
 }

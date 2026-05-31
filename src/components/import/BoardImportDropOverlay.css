@@ -1,0 +1,44 @@
+.board-import-drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-app-dialog) - 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.55);
+  pointer-events: none;
+}
+
+.board-import-drop-overlay-busy {
+  pointer-events: auto;
+}
+
+.board-import-drop-panel {
+  max-width: 420px;
+  width: 100%;
+  padding: 28px 24px;
+  border-radius: var(--radius);
+  border: 2px dashed var(--color-primary);
+  background: var(--color-surface);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  color: var(--color-text);
+}
+
+.board-import-drop-panel svg {
+  color: var(--color-primary);
+  margin-bottom: 12px;
+}
+
+.board-import-drop-title {
+  margin: 0 0 6px;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.board-import-drop-hint {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}

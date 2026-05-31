@@ -128,10 +128,35 @@
   margin: 2px 0 0;
 }
 
+.inspector-answer-hidden {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-style: italic;
+  cursor: pointer;
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+}
+
+.inspector-answer-hidden:hover {
+  color: var(--color-primary);
+}
+
 .tag-list {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+}
+
+.appearance-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  width: 100%;
+  justify-content: center;
+  margin-top: 0.35rem;
 }
 
 .game-preview-board {

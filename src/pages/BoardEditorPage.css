@@ -78,6 +78,19 @@
   font-size: 16px;
 }
 
+.final-jeopardy-hint {
+  margin: 0 0 16px;
+}
+
+.final-jeopardy-tile-wrap.fj-rainbow-wrap-block {
+  max-width: 220px;
+}
+
+.final-jeopardy-tile-wrap .clue-tile {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .final-fields {
   display: grid;
   gap: 0;

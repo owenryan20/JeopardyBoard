@@ -237,7 +237,13 @@ export function collectDatasetIdsFromBoard(board: Board): string[] {
   const ids = new Set<string>();
   for (const cat of board.categories) {
     for (const clue of cat.clues) {
-      if (clue.miniGame?.datasetId) ids.add(clue.miniGame.datasetId);
+      if (
+        clue.miniGame
+        && clue.miniGame.gameType === 'characterGuess'
+        && clue.miniGame.datasetId
+      ) {
+        ids.add(clue.miniGame.datasetId);
+      }
     }
   }
   for (const ds of board.datasets ?? []) ids.add(ds.id);

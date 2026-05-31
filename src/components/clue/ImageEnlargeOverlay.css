@@ -1,0 +1,40 @@
+.image-enlarge-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-clue-overlay) + 1);
+  background: rgba(0, 0, 0, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+}
+
+.image-enlarge-content {
+  cursor: default;
+  max-width: min(95vw, 1400px);
+  max-height: 92vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-enlarge-img {
+  display: block;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: auto;
+  height: auto;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.image-enlarge-content .cr-viewport-wrap {
+  max-width: 95vw;
+}
+
+.image-enlarge-content .cr-viewport-wrap .cr-media img,
+.image-enlarge-content .cr-viewport-wrap .crop-reveal-preview-media img {
+  max-height: 88vh;
+  max-width: 95vw;
+}
