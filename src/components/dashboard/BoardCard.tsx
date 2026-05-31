@@ -9,7 +9,9 @@ import { useNavigate } from 'react-router-dom';
 import type { Board } from '../../types/board';
 import { getAllClues } from '../../lib/boardFactory';
 import { exportBoardJson } from '../../lib/export';
+import { confirmDialog } from '../../lib/dialog';
 import { useBoards } from '../../hooks/useBoards';
+import { BoardCardPreview } from './BoardCardPreview';
 import './BoardCard.css';
 
 interface BoardCardProps {
@@ -29,15 +31,7 @@ export function BoardCard({ board }: BoardCardProps) {
 
   return (
     <article className="board-card card">
-      <div className="board-card-thumb" aria-hidden="true">
-        <div className="board-card-mini-grid">
-          {board.categories.slice(0, 6).map((cat) => (
-            <div key={cat.id} className="board-card-mini-col">
-              <span>{cat.name.slice(0, 3)}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <BoardCardPreview board={board} />
       <div className="board-card-body">
         <h3 className="board-card-title">{board.title}</h3>
         <p className="board-card-meta">
@@ -84,10 +78,15 @@ export function BoardCard({ board }: BoardCardProps) {
             type="button"
             className="btn btn-sm btn-ghost btn-icon btn-danger"
             aria-label={`Delete ${board.title}`}
-            onClick={() => {
-              if (window.confirm(`Delete "${board.title}"? This cannot be undone.`)) {
-                removeBoard(board.id);
-              }
+            onClick={async () => {
+              const ok = await confirmDialog({
+                title: `Delete "${board.title}"?`,
+                description: 'This cannot be undone.',
+                confirmLabel: 'Delete',
+                variant: 'destructive',
+                closeOnBackdrop: false,
+              });
+              if (ok) removeBoard(board.id);
             }}
           >
             <Trash2 size={16} />

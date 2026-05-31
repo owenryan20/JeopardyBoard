@@ -17,15 +17,86 @@
   color: var(--color-text-muted);
 }
 
-.board-grid-categories {
+.board-grid-columns {
   display: grid;
   grid-template-columns: repeat(var(--board-cols, 6), minmax(0, 1fr));
   gap: 10px;
-  margin-bottom: 10px;
+  align-items: start;
+}
+
+.board-grid-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  width: 100%;
+}
+
+.board-grid-column-clues {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.board-grid-tile-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.board-grid-tile-wrap .clue-tile {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.clue-remove-btn {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: rgba(15, 23, 42, 0.08);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+
+.board-grid-tile-wrap:hover .clue-remove-btn,
+.board-grid-tile-wrap:focus-within .clue-remove-btn {
+  opacity: 1;
+}
+
+.clue-remove-btn:hover {
+  background: rgba(220, 38, 38, 0.9);
+  color: #fff;
+}
+
+.add-clue-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.clue-tile-compact {
+  min-height: 72px;
+}
+
+.clue-tile-fj-label {
+  font-size: 18px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .category-header {
   position: relative;
+  width: 100%;
   background: #1e3a8a;
   border-radius: var(--radius-sm);
   padding: 2px;
@@ -82,18 +153,6 @@
 .category-remove-btn:focus-visible {
   outline: 2px solid #93c5fd;
   outline-offset: 1px;
-}
-
-.board-grid-clues {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.board-grid-row {
-  display: grid;
-  grid-template-columns: repeat(var(--board-cols, 6), minmax(0, 1fr));
-  gap: 10px;
 }
 
 .clue-tile {

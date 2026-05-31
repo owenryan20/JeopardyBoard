@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
+import { AppDialogHost } from './components/ui/AppDialog';
 import { ToastHost } from './components/ui/ToastHost';
 import { AppShell } from './components/layout/AppShell';
 import { BoardEditorPage } from './pages/BoardEditorPage';
@@ -16,6 +17,7 @@ import { PreviewPage } from './pages/PreviewPage';
 export default function App() {
   return (
     <>
+      <AppDialogHost />
       <ToastHost />
       <Routes>
       <Route element={<AppShell />}>

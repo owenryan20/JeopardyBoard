@@ -1,9 +1,15 @@
 import { formatPeso } from '../../lib/currency';
-import type { Board, FinalJeopardy, GameSession, Team } from '../../types/board';
+import { ClueAttachments } from '../clue/ClueAttachments';
+import { CharacterGuessPanel } from '../minigame/CharacterGuessPanel';
+import { CropRevealPanel } from '../minigame/CropRevealPanel';
+import type { Board, GameSession, Team } from '../../types/board';
+import { isCharacterGuessTile, isCropRevealTile } from '../../types/board';
 import {
   applyFinalJeopardyResults,
   maxFinalWager,
 } from '../../lib/gameSession';
+import { getCorrectAnswerName } from '../../lib/miniGame';
+import { hasAttachments } from '../../lib/attachments';
 import './FinalJeopardyOverlay.css';
 
 interface FinalJeopardyOverlayProps {
@@ -19,10 +25,14 @@ export function FinalJeopardyOverlay({
   onClose,
   onUpdateSession,
 }: FinalJeopardyOverlayProps) {
-  const fj: FinalJeopardy = board.finalJeopardy;
+  const fj = board.finalJeopardy;
+  const tile = fj.tile;
+  const isCharacterGuess = isCharacterGuessTile(tile);
+  const isCropReveal = isCropRevealTile(tile);
   const phase = session.finalJeopardyRevealed;
   const wagers = session.finalJeopardyWagers;
   const outcomes = session.finalJeopardyOutcomes;
+  const miniGameProgress = session.miniGameProgress[tile.id];
 
   const setPhase = (finalJeopardyRevealed: GameSession['finalJeopardyRevealed']) => {
     onUpdateSession({ ...session, finalJeopardyRevealed });
@@ -61,6 +71,19 @@ export function FinalJeopardyOverlay({
       finalJeopardyRevealed: 'results',
     });
   };
+
+  const updateMiniGameProgress = (progress: import('../../types/board').MiniGameProgress) => {
+    onUpdateSession({
+      ...session,
+      miniGameProgress: { ...session.miniGameProgress, [tile.id]: progress },
+    });
+  };
+
+  const answerLabel = isCharacterGuess
+    ? getCorrectAnswerName(board, tile)
+    : isCropReveal && tile.miniGame?.gameType === 'cropReveal'
+      ? tile.miniGame.correctAnswer
+      : tile.answer;
 
   return (
     <div
@@ -124,7 +147,44 @@ export function FinalJeopardyOverlay({
         {phase === 'clue' && (
           <>
             <p className="clue-overlay-category">{fj.category}</p>
-            <p className="clue-overlay-text">{fj.clue || '(No clue set)'}</p>
+            {isCharacterGuess ? (
+              <div className="final-minigame-wrap">
+                <CharacterGuessPanel
+                  board={board}
+                  categoryName={fj.category}
+                  clue={tile}
+                  mode="game"
+                  progress={miniGameProgress}
+                  onProgressChange={updateMiniGameProgress}
+                />
+              </div>
+            ) : isCropReveal ? (
+              <div className="final-minigame-wrap">
+                <CropRevealPanel
+                  board={board}
+                  categoryName={fj.category}
+                  clue={tile}
+                  mode="game"
+                  progress={
+                    session.cropRevealProgress[tile.id]
+                    ?? undefined
+                  }
+                  onProgressChange={(p) =>
+                    onUpdateSession({
+                      ...session,
+                      cropRevealProgress: { ...session.cropRevealProgress, [tile.id]: p },
+                    })
+                  }
+                />
+              </div>
+            ) : (
+              <>
+                <p className="clue-overlay-text">{tile.clue || '(No clue set)'}</p>
+                {hasAttachments(tile) && (
+                  <ClueAttachments clue={tile} showProgress enlargeImages />
+                )}
+              </>
+            )}
             <div className="final-wager-summary" aria-label="Locked wagers">
               {session.teams.map((team) => (
                 <span key={team.id}>
@@ -141,9 +201,16 @@ export function FinalJeopardyOverlay({
         {phase === 'answer' && (
           <>
             <p className="clue-overlay-category">{fj.category}</p>
-            <p className="clue-overlay-text">{fj.clue}</p>
+            {!isCharacterGuess && !isCropReveal && (
+              <>
+                <p className="clue-overlay-text">{tile.clue}</p>
+                {hasAttachments(tile) && (
+                  <ClueAttachments clue={tile} showProgress enlargeImages />
+                )}
+              </>
+            )}
             <p className="clue-overlay-answer">
-              <strong>Answer:</strong> {fj.answer || '(No answer set)'}
+              <strong>Answer:</strong> {answerLabel || '(No answer set)'}
             </p>
             <p className="final-hint">Mark each team correct or incorrect to apply wagers.</p>
             <OutcomeForm

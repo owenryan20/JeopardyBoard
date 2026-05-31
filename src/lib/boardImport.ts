@@ -6,6 +6,21 @@ export type BoardImportResult =
   | { ok: true; board: Board }
   | { ok: false; error: string };
 
+export function isBoardImportFile(file: File): boolean {
+  const lower = file.name.toLowerCase();
+  if (lower.endsWith('.json') || lower.endsWith('.zip')) return true;
+  return isZipFile(file);
+}
+
+export function pickBoardImportFile(files: FileList | null | undefined): File | null {
+  if (!files?.length) return null;
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (file && isBoardImportFile(file)) return file;
+  }
+  return null;
+}
+
 export async function importBoardFromFile(file: File): Promise<BoardImportResult> {
   try {
     if (isZipFile(file)) {

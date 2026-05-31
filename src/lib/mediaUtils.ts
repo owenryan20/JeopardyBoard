@@ -1,4 +1,5 @@
 import type { Board, Media, MediaType } from '../types/board';
+import { collectAllLocalMediaIds } from './attachments';
 
 export const MEDIA_SIZE_LIMITS: Record<MediaType, number> = {
   image: 5 * 1024 * 1024,
@@ -100,16 +101,7 @@ export function mediaForSave(raw?: Partial<Media> | null): Media | undefined {
 }
 
 export function collectLocalMediaIds(board: Board): string[] {
-  const ids = new Set<string>();
-  for (const category of board.categories) {
-    for (const clue of category.clues) {
-      const media = normalizeMedia(clue.media);
-      if (media && isLocalMedia(media) && media.mediaId) {
-        ids.add(media.mediaId);
-      }
-    }
-  }
-  return [...ids];
+  return collectAllLocalMediaIds(board);
 }
 
 export function collectLocalMediaIdsFromBoards(boards: Board[]): Set<string> {

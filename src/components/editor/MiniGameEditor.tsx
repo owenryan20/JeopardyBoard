@@ -5,11 +5,13 @@ import type {
   AttributeBehavior,
   Board,
   BoardDataset,
+  CharacterGuessMiniGameConfig,
   Clue,
   MiniGameAttribute,
-  MiniGameConfig,
 } from '../../types/board';
+import { isCharacterGuessConfig } from '../../types/board';
 import { DEFAULT_POINT_VALUES } from '../../types/board';
+import { FinalJeopardyCategoryField } from './FinalJeopardyCategoryField';
 import type { AppDataset, DatasetKind } from '../../types/dataset';
 import {
   datasetToCsv,
@@ -19,7 +21,7 @@ import {
   suggestNameField as csvSuggestNameField,
 } from '../../lib/csvParse';
 import { appDatasetToBoardDataset } from '../../lib/datasetConvert';
-import { hasTileContent } from '../../lib/boardFactory';
+import { canResetTile } from '../../lib/boardFactory';
 import { exportBoardBackup } from '../../lib/export';
 import { useDatasets } from '../../hooks/useDatasets';
 import {
@@ -56,6 +58,9 @@ interface MiniGameEditorProps {
   board: Board;
   categoryName: string;
   clue: Clue;
+  variant?: 'board' | 'final';
+  finalCategory?: string;
+  onFinalCategoryChange?: (category: string) => void;
   onSave: (clue: Clue) => void;
   onCancel: () => void;
   onReset?: () => void;
@@ -65,6 +70,9 @@ export function MiniGameEditor({
   board,
   categoryName,
   clue,
+  variant = 'board',
+  finalCategory = '',
+  onFinalCategoryChange,
   onSave,
   onCancel,
   onReset,
@@ -72,6 +80,7 @@ export function MiniGameEditor({
   const { datasets: globalDatasets, createDataset, createFromParsed } = useDatasets();
   const [tab, setTab] = useState<Tab>('setup');
   const [draftClue, setDraftClue] = useState(clue);
+  const [categoryDraft, setCategoryDraft] = useState(finalCategory);
   const [csvDetails, setCsvDetails] = useState<string | null>(null);
   const [answerQuery, setAnswerQuery] = useState('');
   const [showChoose, setShowChoose] = useState(false);
@@ -80,7 +89,11 @@ export function MiniGameEditor({
   const [showPaste, setShowPaste] = useState(false);
   const [showFgo, setShowFgo] = useState(false);
 
-  const config = draftClue.miniGame!;
+  const config = draftClue.miniGame;
+  if (!config || !isCharacterGuessConfig(config)) {
+    return null;
+  }
+  const isFinal = variant === 'final';
   const dataset = getDataset(board, config.datasetId);
   const appDataset = globalDatasets.find((d) => d.id === config.datasetId);
   const missingDataset = Boolean(config.datasetId && !dataset);
@@ -88,7 +101,7 @@ export function MiniGameEditor({
   useEffect(() => {
     setDraftClue(clue);
     const mg = clue.miniGame;
-    if (!mg?.correctAnswerId) {
+    if (!mg || !isCharacterGuessConfig(mg) || !mg.correctAnswerId) {
       setAnswerQuery('');
       return;
     }
@@ -102,12 +115,25 @@ export function MiniGameEditor({
     }
   }, [clue, board]);
 
-  const updateConfig = (partial: Partial<MiniGameConfig>) => {
-    setDraftClue((prev) => ({
-      ...prev,
-      miniGame: { ...prev.miniGame!, ...partial, pointValue: partial.pointValue ?? prev.miniGame!.pointValue },
-      value: partial.pointValue ?? prev.value,
-    }));
+  useEffect(() => {
+    setCategoryDraft(finalCategory);
+  }, [finalCategory, clue.id]);
+
+  const updateConfig = (partial: Partial<CharacterGuessMiniGameConfig>) => {
+    setDraftClue((prev) => {
+      const current = prev.miniGame;
+      if (!current || !isCharacterGuessConfig(current)) return prev;
+      const nextConfig: CharacterGuessMiniGameConfig = {
+        ...current,
+        ...partial,
+        pointValue: partial.pointValue ?? current.pointValue,
+      };
+      return {
+        ...prev,
+        miniGame: nextConfig,
+        value: partial.pointValue ?? prev.value,
+      };
+    });
   };
 
   const selectCorrectAnswer = (rowId: string, label: string) => {
@@ -180,7 +206,12 @@ export function MiniGameEditor({
   const readiness = getMiniGameReadiness(board, draftClue);
   const visibleAttrCount = config.attributes.filter((a) => a.visible && a.behavior !== 'hidden').length;
 
-  const save = () => onSave({ ...draftClue, value: config.pointValue });
+  const save = () => {
+    if (isFinal) {
+      onFinalCategoryChange?.(categoryDraft.trim());
+    }
+    onSave({ ...draftClue, value: isFinal ? 0 : config.pointValue });
+  };
 
   const builderReturn = `/boards/${board.id}/edit`;
 
@@ -191,7 +222,7 @@ export function MiniGameEditor({
           <div>
             <h2 id="mg-editor-title">Edit Mini Game</h2>
             <p className="minigame-editor-subtitle">
-              Character Guess · {config.pointValue} points · {categoryName}
+              Character Guess{isFinal ? '' : ` · ${config.pointValue} points`} · {categoryName}
             </p>
           </div>
           <button type="button" className="btn btn-ghost btn-icon" aria-label="Close" onClick={onCancel}>
@@ -215,6 +246,14 @@ export function MiniGameEditor({
         </div>
 
         <div className="modal-body minigame-editor-body">
+          {isFinal && (
+            <FinalJeopardyCategoryField
+              id="mg-editor-fj-category"
+              value={categoryDraft}
+              onChange={setCategoryDraft}
+            />
+          )}
+
           {tab === 'setup' && (
             <div className="minigame-tab-panel">
               <div className="field">
@@ -225,6 +264,7 @@ export function MiniGameEditor({
                 <label className="label">Mini Game type</label>
                 <input className="input" value="Character Guess" readOnly disabled />
               </div>
+              {!isFinal && (
               <div className="field">
                 <label className="label" htmlFor="mg-value">Point value</label>
                 <select id="mg-value" className="select" value={config.pointValue} onChange={(e) => updateConfig({ pointValue: Number(e.target.value) })}>
@@ -233,6 +273,7 @@ export function MiniGameEditor({
                   ))}
                 </select>
               </div>
+              )}
               <div className="field">
                 <label className="label" htmlFor="mg-answer">Correct answer</label>
                 <input
@@ -409,7 +450,7 @@ export function MiniGameEditor({
         </div>
 
         <div className="modal-footer">
-          {onReset && hasTileContent(draftClue, board) && (
+          {onReset && canResetTile(draftClue, board) && (
             <button type="button" className="btn btn-danger modal-footer-start" onClick={onReset}>
               Reset Tile
             </button>

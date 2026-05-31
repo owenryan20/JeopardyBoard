@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Board, Clue, MiniGameProgress, Team } from '../../types/board';
+import { isCharacterGuessConfig } from '../../types/board';
+import { confirmDialog } from '../../lib/dialog';
 import { formatPeso } from '../../lib/currency';
 import {
   COMPARISON_LEGEND,
@@ -13,6 +15,7 @@ import {
   getVisibleComparisonAttributes,
   searchDatasetRows,
 } from '../../lib/miniGame';
+import { TeamScoreQuickActions } from '../game/TeamScoreQuickActions';
 import './CharacterGuessPanel.css';
 
 interface CharacterGuessPanelProps {
@@ -53,7 +56,15 @@ export function CharacterGuessPanel({
   onBackToBoard,
   onMarkUsed,
 }: CharacterGuessPanelProps) {
-  const config = clue.miniGame!;
+  const config = clue.miniGame;
+  if (!config || !isCharacterGuessConfig(config)) {
+    return (
+      <div className="cg-panel cg-panel-error">
+        <p>Character Guess is not configured.</p>
+        {onClose && <button type="button" className="btn" onClick={onClose}>Close</button>}
+      </div>
+    );
+  }
   const dataset = getDataset(board, config.datasetId);
   const answerRow = getCorrectAnswerRow(board, config);
   const [localProgress, setLocalProgress] = useState<MiniGameProgress>(defaultProgress);
@@ -120,13 +131,27 @@ export function CharacterGuessPanel({
     setShowSuggestions(false);
   };
 
-  const handleReveal = () => {
-    if (!window.confirm('Reveal answer? This will end the mini game for this tile.')) return;
+  const handleReveal = async () => {
+    const ok = await confirmDialog({
+      title: 'Reveal answer?',
+      description: 'This will end the mini game for this tile.',
+      confirmLabel: 'Reveal answer',
+      variant: 'destructive',
+      closeOnBackdrop: false,
+    });
+    if (!ok) return;
     setProgress({ ...progress, revealed: true, finished: true, won: false });
   };
 
-  const handleReset = () => {
-    if (!window.confirm('Reset this mini game? All guesses for this tile will be cleared.')) return;
+  const handleReset = async () => {
+    const ok = await confirmDialog({
+      title: 'Reset mini game?',
+      description: 'All guesses for this tile will be cleared.',
+      confirmLabel: 'Reset',
+      variant: 'destructive',
+      closeOnBackdrop: false,
+    });
+    if (!ok) return;
     setProgress(defaultProgress());
     setQuery('');
   };
@@ -137,15 +162,6 @@ export function CharacterGuessPanel({
       : undefined;
 
   const answerName = answerRow?.[nameField] ?? '';
-
-  if (!config) {
-    return (
-      <div className="cg-panel cg-panel-error">
-        <p>Mini Game is not configured.</p>
-        {onClose && <button type="button" className="btn" onClick={onClose}>Close</button>}
-      </div>
-    );
-  }
 
   if (!dataset) {
     return (
@@ -310,9 +326,10 @@ export function CharacterGuessPanel({
       </div>
 
       {finished && mode === 'game' && teams && (onScoreTeam || onTeamScore) && (
-        <ScoreSection
+        <TeamScoreQuickActions
+          className="score-quick-actions cg-scoring"
           teams={teams}
-          value={config.pointValue}
+          value={clue.value ?? config.pointValue}
           selections={teamScoreSelections}
           onScore={(teamId, delta) => (onTeamScore ?? onScoreTeam)?.(teamId, delta)}
         />
@@ -340,62 +357,5 @@ function ComparisonCell({
         </span>
       )}
     </span>
-  );
-}
-
-function ScoreSection({
-  teams,
-  value,
-  selections,
-  onScore,
-}: {
-  teams: Team[];
-  value: number;
-  selections: Record<string, 'add' | 'subtract'>;
-  onScore: (teamId: string, delta: number) => void;
-}) {
-  return (
-    <div className="score-quick-actions cg-scoring">
-      <p>Apply score — click selected again to undo:</p>
-      {teams.map((team) => {
-        const selection = selections[team.id];
-        const scored = selection != null;
-        return (
-          <div key={team.id} className="score-team-row">
-            <span>{team.name}</span>
-            <div className="score-team-buttons" role="group" aria-label={`Score for ${team.name}`}>
-              <button
-                type="button"
-                className={`btn btn-sm score-btn-add${selection === 'add' ? ' score-btn-selected' : ''}`}
-                disabled={scored && selection !== 'add'}
-                aria-pressed={selection === 'add'}
-                aria-label={
-                  selection === 'add'
-                    ? `Undo ${value} points for ${team.name}`
-                    : `Award ${value} points to ${team.name}`
-                }
-                onClick={() => onScore(team.id, value)}
-              >
-                +{value}
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm score-btn-subtract${selection === 'subtract' ? ' score-btn-selected' : ''}`}
-                disabled={scored && selection !== 'subtract'}
-                aria-pressed={selection === 'subtract'}
-                aria-label={
-                  selection === 'subtract'
-                    ? `Undo −${value} points for ${team.name}`
-                    : `Deduct ${value} points from ${team.name}`
-                }
-                onClick={() => onScore(team.id, -value)}
-              >
-                −{value}
-              </button>
-            </div>
-          </div>
-        );
-      })}
-    </div>
   );
 }

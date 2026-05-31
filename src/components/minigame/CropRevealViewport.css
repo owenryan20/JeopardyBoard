@@ -1,0 +1,105 @@
+.cr-viewport-wrap {
+  position: relative;
+  border-radius: 10px;
+  background: #0a1628;
+  width: fit-content;
+  max-width: 100%;
+  margin-inline: auto;
+}
+
+.cr-viewport-wrap-interactive {
+  cursor: crosshair;
+  touch-action: none;
+  user-select: none;
+}
+
+.cr-viewport-wrap-interactive.cr-viewport-wrap-dragging {
+  cursor: grabbing;
+}
+
+.cr-viewport-wrap-enlargeable {
+  cursor: zoom-in;
+}
+
+.cr-viewport-wrap-enlargeable:focus-visible {
+  outline: 2px solid var(--game-gold, #fbbf24);
+  outline-offset: 2px;
+}
+
+.cr-viewport {
+  overflow: hidden;
+  border-radius: inherit;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.cr-viewport-transition {
+  transition: clip-path 0.4s ease;
+}
+
+.cr-viewport-wrap .cr-media,
+.cr-viewport-wrap .crop-reveal-preview-media {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  line-height: 0;
+}
+
+.cr-viewport-wrap .attachment-figure {
+  margin: 0;
+  width: fit-content;
+  max-width: 100%;
+}
+
+.cr-viewport-wrap .cr-media img,
+.cr-viewport-wrap .crop-reveal-preview-media img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+}
+
+.cr-viewport-wrap .cr-media img {
+  max-height: min(360px, 60vh);
+}
+
+.cr-viewport-wrap .crop-reveal-preview-media img {
+  max-height: min(280px, 45vh);
+}
+
+.cr-focal-marker {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cr-focal-marker::before,
+.cr-focal-marker::after {
+  content: '';
+  position: absolute;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.cr-focal-marker::before {
+  left: 50%;
+  top: -6px;
+  width: 1px;
+  height: 26px;
+  margin-left: -0.5px;
+}
+
+.cr-focal-marker::after {
+  top: 50%;
+  left: -6px;
+  height: 1px;
+  width: 26px;
+  margin-top: -0.5px;
+}

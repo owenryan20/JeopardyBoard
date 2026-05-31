@@ -51,8 +51,8 @@ export function openPrintableBoard(board: Board): void {
     })
     .join('');
 
-  const bodyRows = [0, 1, 2, 3, 4]
-    .map((rowIndex) => {
+  const rowCount = Math.max(...board.categories.map((c) => c.clues.length), 0);
+  const bodyRows = Array.from({ length: rowCount }, (_, rowIndex) => {
       const cells = board.categories
         .map((cat) => {
           const clue = cat.clues[rowIndex];
@@ -64,13 +64,13 @@ export function openPrintableBoard(board: Board): void {
         })
         .join('');
       return `<tr>${cells}</tr>`;
-    })
-    .join('');
+    }).join('');
 
   const final = board.finalJeopardy;
+  const finalTile = final.tile;
   const finalSection =
-    final.category || final.clue
-      ? `<section class="final"><h2>Final Jeopardy</h2><p><strong>Category:</strong> ${escapeHtml(final.category)}</p><p>${escapeHtml(final.clue)}</p><p class="answer"><strong>Answer:</strong> ${escapeHtml(final.answer)}</p></section>`
+    final.category || finalTile.clue
+      ? `<section class="final"><h2>Final Jeopardy</h2><p><strong>Category:</strong> ${escapeHtml(final.category)}</p><p>${escapeHtml(finalTile.clue)}</p><p class="answer"><strong>Answer:</strong> ${escapeHtml(finalTile.answer)}</p></section>`
       : '';
 
   win.document.write(`<!DOCTYPE html>

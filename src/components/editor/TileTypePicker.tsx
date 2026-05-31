@@ -1,17 +1,19 @@
-import { Gamepad2, HelpCircle } from 'lucide-react';
+import { Crop, Gamepad2, HelpCircle } from 'lucide-react';
 import './TileTypePicker.css';
 
 interface TileTypePickerProps {
   pointValue: number;
   onSelectClue: () => void;
-  onSelectMiniGame: () => void;
+  onSelectCharacterGuess: () => void;
+  onSelectCropReveal: () => void;
   onCancel: () => void;
 }
 
 export function TileTypePicker({
   pointValue,
   onSelectClue,
-  onSelectMiniGame,
+  onSelectCharacterGuess,
+  onSelectCropReveal,
   onCancel,
 }: TileTypePickerProps) {
   return (
@@ -26,10 +28,15 @@ export function TileTypePicker({
             <strong>Standard Clue</strong>
             <span>Question and answer for classic Jeopardy play</span>
           </button>
-          <button type="button" className="tile-type-card tile-type-minigame" onClick={onSelectMiniGame}>
+          <button type="button" className="tile-type-card tile-type-minigame" onClick={onSelectCharacterGuess}>
             <Gamepad2 size={28} aria-hidden="true" />
-            <strong>Mini Game</strong>
-            <span>Interactive Character Guess using a CSV dataset</span>
+            <strong>Character Guess</strong>
+            <span>Interactive guessing using a CSV dataset</span>
+          </button>
+          <button type="button" className="tile-type-card tile-type-minigame" onClick={onSelectCropReveal}>
+            <Crop size={28} aria-hidden="true" />
+            <strong>Crop Reveal</strong>
+            <span>Guess from a progressively revealed image crop</span>
           </button>
         </div>
         <div className="modal-footer">

@@ -4,6 +4,16 @@
   margin: 12px 0;
 }
 
+.final-minigame-wrap {
+  margin: 12px 0;
+  max-height: 55vh;
+  overflow: auto;
+}
+
+.final-minigame-wrap .cg-panel {
+  max-width: none;
+}
+
 .final-wager-form,
 .final-outcome-form {
   text-align: left;

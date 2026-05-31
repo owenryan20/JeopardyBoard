@@ -1,3 +1,77 @@
+.board-themed.game-screen,
+.board-themed.preview-screen {
+  background: var(--board-bg, var(--game-bg));
+  background-image: var(--board-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.board-themed.game-screen::before,
+.board-themed.preview-screen::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--board-bg-overlay, transparent);
+  opacity: var(--board-bg-overlay-opacity, 0);
+}
+
+.board-themed.game-screen > *:not(.clue-overlay),
+.board-themed.preview-screen > *:not(.clue-overlay) {
+  position: relative;
+  z-index: 1;
+}
+
+.board-themed.board-themed .game-board-wrap {
+  background: transparent;
+}
+
+.board-themed .game-tile {
+  background: var(--board-tile-bg, #1a2744);
+  border-color: var(--board-tile-border, rgba(251, 191, 36, 0.3));
+}
+
+.board-themed .game-tile-used {
+  background: var(--board-tile-bg-used, #1a2744);
+}
+
+.board-themed .game-tile:not(.game-tile-used) .game-value {
+  color: var(--board-point-text, #fbbf24);
+}
+
+.board-themed .game-tile:hover:not(:disabled):not(.game-tile-used) {
+  background: var(--board-tile-bg-hover, #1a3050);
+}
+
+.board-themed .game-top-bar {
+  background: var(--board-top-bar-bg, var(--game-panel));
+}
+
+.board-themed .team-dock {
+  background: var(--board-footer-bg, var(--game-panel));
+}
+
+.board-themed .clue-overlay-text {
+  color: var(--board-clue-text, #ffffff);
+}
+
+.team-style-row {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0.25rem 0;
+}
+
+.team-color-input {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
 .game-screen {
   min-height: 100vh;
   background: var(--game-bg);
@@ -56,11 +130,29 @@
   max-width: 1100px;
 }
 
-.game-categories {
+.game-board-columns {
   display: grid;
   grid-template-columns: repeat(var(--board-cols, 6), minmax(0, 1fr));
   gap: 8px;
-  margin-bottom: 8px;
+  align-items: start;
+}
+
+.game-board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  width: 100%;
+}
+
+.game-board-column .game-tile {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.game-categories,
+.game-row {
+  display: none;
 }
 
 .game-category {
@@ -139,7 +231,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 200;
+  z-index: var(--z-clue-overlay);
   padding: 24px;
 }
 
@@ -187,6 +279,18 @@
   max-width: 100%;
   max-height: 300px;
   border-radius: 8px;
+}
+
+.clue-overlay-media .attachment-video {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 8px;
+  background: #000;
+}
+
+.clue-overlay-media .attachment-audio-card {
+  width: 100%;
+  max-width: 100%;
 }
 
 .clue-overlay-actions {

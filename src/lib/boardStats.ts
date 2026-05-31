@@ -10,15 +10,19 @@ export interface BoardReadiness {
 }
 
 export function getBoardReadiness(board: Board): BoardReadiness {
-  const clues = getAllClues(board);
+  const clues = [...getAllClues(board), board.finalJeopardy.tile];
   const total = clues.length;
   const completed = clues.filter((c) => clueStatus(c, board) === 'complete').length;
   const missingAnswers = clues.filter(
     (c) => c.type !== 'miniGame' && c.clue.trim() && !c.answer.trim(),
   ).length;
-  const mediaWithoutAlt = clues.filter(
-    (c) => hasClueMedia(c.media) && !c.media?.altText?.trim(),
-  ).length;
+  const mediaWithoutAlt = clues.filter((c) => {
+    const legacyMissing = hasClueMedia(c.media) && !c.media?.altText?.trim();
+    const attachmentMissing = (c.attachments ?? []).some(
+      (a) => a.type === 'image' && !a.alt?.trim(),
+    );
+    return legacyMissing || attachmentMissing;
+  }).length;
   const percent = total === 0 ? 0 : Math.round((completed / total) * 100);
 
   return { total, completed, missingAnswers, mediaWithoutAlt, percent };

@@ -2,12 +2,16 @@ import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
-import { ClueMedia } from '../components/clue/ClueMedia';
+import { CropRevealPanel } from '../components/minigame/CropRevealPanel';
+import { ClueAttachments } from '../components/clue/ClueAttachments';
+import { TeamScoreQuickActions } from '../components/game/TeamScoreQuickActions';
 import type { Board, Clue } from '../types/board';
-import { isMiniGameTile } from '../types/board';
+import { isCharacterGuessTile, isCropRevealTile } from '../types/board';
 import { formatPeso } from '../lib/currency';
 import { findClue } from '../lib/boardFactory';
-import { hasClueMedia } from '../lib/mediaUtils';
+import { hasAttachments } from '../lib/attachments';
+import { getCategoryHeaderStyle } from '../lib/boardTheme';
+import { useBoardThemeStyles } from '../hooks/useBoardTheme';
 import { getBoard } from '../lib/storage';
 import './GameBoard.css';
 
@@ -28,7 +32,13 @@ export function PreviewPage() {
 
   useEffect(() => {
     const clueId = searchParams.get('clue');
-    if (!board || !clueId) return;
+    const finalPreview = searchParams.get('final');
+    if (!board) return;
+    if (finalPreview === '1') {
+      setRevealed({ categoryId: '__final__', clueId: board.finalJeopardy.tile.id });
+      return;
+    }
+    if (!clueId) return;
     for (const cat of board.categories) {
       const clue = cat.clues.find((c) => c.id === clueId);
       if (clue) {
@@ -38,15 +48,25 @@ export function PreviewPage() {
     }
   }, [board, searchParams]);
 
+  const themeStyles = useBoardThemeStyles(board);
+
   if (!board) return <div className="game-screen"><p>Loading…</p></div>;
 
   const activeClue =
-    revealed && findClue(board, revealed.categoryId, revealed.clueId);
+    revealed && revealed.categoryId === '__final__'
+      ? {
+          category: { name: board.finalJeopardy.category || 'Final Jeopardy' },
+          clue: board.finalJeopardy.tile,
+        }
+      : revealed
+        ? findClue(board, revealed.categoryId, revealed.clueId)
+        : null;
 
-  const isMiniGame = activeClue && isMiniGameTile(activeClue.clue);
+  const isCharacterGuess = activeClue && isCharacterGuessTile(activeClue.clue);
+  const isCropReveal = activeClue && isCropRevealTile(activeClue.clue);
 
   return (
-    <div className="game-screen preview-screen">
+    <div className="game-screen preview-screen board-themed" style={themeStyles}>
       <header className="game-top-bar">
         <h1>{board.title}</h1>
         <div className="game-top-actions">
@@ -69,7 +89,7 @@ export function PreviewPage() {
         />
       </div>
 
-      {activeClue && isMiniGame && (
+      {activeClue && isCharacterGuess && (
         <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
           <CharacterGuessPanel
             board={board}
@@ -88,7 +108,22 @@ export function PreviewPage() {
         </div>
       )}
 
-      {activeClue && !isMiniGame && (
+      {activeClue && isCropReveal && (
+        <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
+          <CropRevealPanel
+            board={board}
+            categoryName={activeClue.category.name}
+            clue={activeClue.clue}
+            mode="preview"
+            onBackToBoard={() => {
+              setRevealed(null);
+              setShowAnswer(false);
+            }}
+          />
+        </div>
+      )}
+
+      {activeClue && !isCharacterGuess && !isCropReveal && (
         <ClueOverlay
           categoryName={activeClue.category.name}
           clue={activeClue.clue}
@@ -114,23 +149,28 @@ export function GameBoardGrid({
   onTileClick: (categoryId: string, clue: Clue) => void;
   usedClueIds?: Set<string>;
 }) {
-  const rowCount = board.categories[0]?.clues.length ?? 0;
-  const gridStyle = { '--board-cols': board.categories.length } as CSSProperties;
+  const themeStyles = useBoardThemeStyles(board);
+  const gridStyle = { '--board-cols': board.categories.length, ...themeStyles } as CSSProperties;
 
   return (
-    <div className="game-board" style={gridStyle} role="grid" aria-label="Game board">
-      <div className="game-categories" role="row">
-        {board.categories.map((cat) => (
-          <div key={cat.id} className="game-category" role="columnheader">
+    <div className="game-board game-board-columns board-themed" style={gridStyle} role="grid" aria-label="Game board">
+      {board.categories.map((cat) => {
+        const headerStyle = getCategoryHeaderStyle(cat, board);
+        return (
+        <div key={cat.id} className="game-board-column" role="presentation">
+          <div
+            className="game-category"
+            role="columnheader"
+            style={{
+              background: headerStyle.headerBackgroundImage
+                ? `url(${headerStyle.headerBackgroundImage}) center/cover`
+                : headerStyle.headerBackground,
+              color: headerStyle.headerTextColor,
+            }}
+          >
             {cat.name}
           </div>
-        ))}
-      </div>
-      {Array.from({ length: rowCount }).map((_, rowIndex) => (
-        <div key={rowIndex} className="game-row" role="row">
-          {board.categories.map((cat) => {
-            const clue = cat.clues[rowIndex];
-            if (!clue) return null;
+          {cat.clues.map((clue) => {
             const used = usedClueIds?.has(clue.id) ?? clue.isUsed;
             return (
               <button
@@ -147,7 +187,8 @@ export function GameBoardGrid({
             );
           })}
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 }
@@ -164,6 +205,9 @@ export function ClueOverlay({
   teams,
   onScoreTeam,
   teamScoreSelections = {},
+  attachmentRevealIndex = 0,
+  onRevealNextAttachment,
+  enlargeImages = false,
 }: {
   categoryName: string;
   clue: Clue;
@@ -176,8 +220,12 @@ export function ClueOverlay({
   teams?: { id: string; name: string; score: number }[];
   onScoreTeam?: (teamId: string, delta: number) => void;
   teamScoreSelections?: Record<string, 'add' | 'subtract'>;
+  attachmentRevealIndex?: number;
+  onRevealNextAttachment?: () => void;
+  enlargeImages?: boolean;
 }) {
   const value = clueValue ?? clue.value;
+  const showAttachments = hasAttachments(clue);
 
   return (
     <div className="clue-overlay" role="dialog" aria-modal="true" aria-labelledby="clue-overlay-title">
@@ -188,7 +236,15 @@ export function ClueOverlay({
         <h2 id="clue-overlay-title" className="clue-overlay-text">
           {clue.clue || '(No clue text)'}
         </h2>
-        {hasClueMedia(clue.media) && clue.media && <ClueMedia media={clue.media} />}
+        {showAttachments && (
+          <ClueAttachments
+            clue={clue}
+            revealIndex={attachmentRevealIndex}
+            onRevealNext={onRevealNextAttachment}
+            showProgress
+            enlargeImages={enlargeImages}
+          />
+        )}
         {showAnswer && (
           <p className="clue-overlay-answer">
             <strong>Answer:</strong> {clue.answer || '(No answer)'}
@@ -210,48 +266,12 @@ export function ClueOverlay({
           </button>
         </div>
         {!preview && showAnswer && teams && onScoreTeam && (
-          <div className="score-quick-actions">
-            <p>Apply score — click selected again to undo:</p>
-            {teams.map((team) => {
-              const selection = teamScoreSelections[team.id];
-              const scored = selection != null;
-              return (
-                <div key={team.id} className="score-team-row">
-                  <span>{team.name}</span>
-                  <div className="score-team-buttons" role="group" aria-label={`Score for ${team.name}`}>
-                    <button
-                      type="button"
-                      className={`btn btn-sm score-btn-add${selection === 'add' ? ' score-btn-selected' : ''}`}
-                      disabled={scored && selection !== 'add'}
-                      aria-pressed={selection === 'add'}
-                      aria-label={
-                        selection === 'add'
-                          ? `Undo ${value} points for ${team.name}`
-                          : `Award ${value} points to ${team.name}`
-                      }
-                      onClick={() => onScoreTeam(team.id, value)}
-                    >
-                      +{value}
-                    </button>
-                    <button
-                      type="button"
-                      className={`btn btn-sm score-btn-subtract${selection === 'subtract' ? ' score-btn-selected' : ''}`}
-                      disabled={scored && selection !== 'subtract'}
-                      aria-pressed={selection === 'subtract'}
-                      aria-label={
-                        selection === 'subtract'
-                          ? `Undo −${value} points for ${team.name}`
-                          : `Deduct ${value} points from ${team.name}`
-                      }
-                      onClick={() => onScoreTeam(team.id, -value)}
-                    >
-                      −{value}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <TeamScoreQuickActions
+            teams={teams}
+            value={value}
+            selections={teamScoreSelections}
+            onScore={onScoreTeam}
+          />
         )}
       </div>
     </div>

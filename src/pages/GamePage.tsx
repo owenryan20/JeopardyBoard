@@ -1,9 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FinalJeopardyOverlay } from '../components/game/FinalJeopardyOverlay';
+import { FinalJeopardyRainbowWrap } from '../components/game/FinalJeopardyRainbowWrap';
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
-import type { Board, GameSession, MiniGameProgress, Team } from '../types/board';
-import { isMiniGameTile } from '../types/board';
+import { CropRevealPanel } from '../components/minigame/CropRevealPanel';
+import type { Board, CropRevealRuntimeState, GameSession, MiniGameProgress, Team } from '../types/board';
+import { isCharacterGuessTile, isCropRevealTile } from '../types/board';
+import { createCropRevealRuntimeState } from '../lib/cropReveal';
+import { confirmDialog, promptDialog } from '../lib/dialog';
+import { migrateTeam, DEFAULT_TEAM_COLORS } from '../lib/boardTheme';
+import { useBoardThemeStyles } from '../hooks/useBoardTheme';
 import { formatPeso } from '../lib/currency';
 import { createId } from '../lib/ids';
 import { findClue } from '../lib/boardFactory';
@@ -19,10 +25,6 @@ import {
 import { ClueOverlay, GameBoardGrid } from './PreviewPage';
 import './GameBoard.css';
 
-const TEAM_COLORS = [
-  '#3b82f6', '#a855f7', '#14b8a6', '#f97316', '#ec4899', '#22c55e',
-  '#eab308', '#06b6d4', '#ef4444', '#8b5cf6',
-];
 const TEAM_COUNT_OPTIONS = Array.from({ length: 9 }, (_, i) => i + 2);
 
 type TeamClueScore = 'add' | 'subtract';
@@ -63,6 +65,8 @@ export function GamePage() {
     if (session) saveGameSession(session);
   }, [session]);
 
+  const themeStyles = useBoardThemeStyles(board);
+
   if (!board || !session) {
     return (
       <div className="game-screen">
@@ -78,7 +82,28 @@ export function GamePage() {
   const activeClue =
     revealed && findClue(board, revealed.categoryId, revealed.clueId);
 
-  const isMiniGame = activeClue && isMiniGameTile(activeClue.clue);
+  const isCharacterGuess = activeClue && isCharacterGuessTile(activeClue.clue);
+  const isCropReveal = activeClue && isCropRevealTile(activeClue.clue);
+
+  const attachmentRevealIndex =
+    revealed && session.attachmentRevealIndex[revealed.clueId] !== undefined
+      ? session.attachmentRevealIndex[revealed.clueId]
+      : 0;
+
+  const revealNextAttachment = () => {
+    if (!revealed) return;
+    setSession((s) => {
+      if (!s) return s;
+      const current = s.attachmentRevealIndex[revealed.clueId] ?? 0;
+      return {
+        ...s,
+        attachmentRevealIndex: {
+          ...s.attachmentRevealIndex,
+          [revealed.clueId]: current + 1,
+        },
+      };
+    });
+  };
 
   const markClueUsed = () => {
     if (!revealed) return;
@@ -104,6 +129,17 @@ export function GamePage() {
   const closeOverlay = () => {
     setRevealed(null);
     setShowAnswer(false);
+  };
+
+  const updateCropRevealProgress = (clueId: string, progress: CropRevealRuntimeState) => {
+    setSession((s) =>
+      s
+        ? {
+            ...s,
+            cropRevealProgress: { ...s.cropRevealProgress, [clueId]: progress },
+          }
+        : s,
+    );
   };
 
   const updateMiniGameProgress = (clueId: string, progress: MiniGameProgress) => {
@@ -168,8 +204,15 @@ export function GamePage() {
     );
   };
 
-  const resetGame = () => {
-    if (!window.confirm('Reset all used tiles and scores?')) return;
+  const resetGame = async () => {
+    const ok = await confirmDialog({
+      title: 'Reset game?',
+      description: 'Reset all used tiles and scores?',
+      confirmLabel: 'Reset',
+      variant: 'destructive',
+      closeOnBackdrop: false,
+    });
+    if (!ok) return;
     const resetBoard: Board = {
       ...board,
       categories: board.categories.map((cat) => ({
@@ -199,28 +242,44 @@ export function GamePage() {
       if (!s) return s;
       const teams = [...s.teams];
       while (teams.length < count) {
-        teams.push({
-          id: createId(),
-          name: `Team ${teams.length + 1}`,
-          score: 0,
-        });
+        teams.push(
+          migrateTeam(
+            {
+              id: createId(),
+              name: `Team ${teams.length + 1}`,
+              score: 0,
+            },
+            teams.length,
+          ),
+        );
       }
       return { ...s, teams: teams.slice(0, count) };
     });
   };
 
   return (
-    <div className="game-screen">
+    <div className="game-screen board-themed" style={themeStyles}>
       <header className="game-top-bar">
         <h1>{board.title}</h1>
         <div className="game-top-actions">
           <Link to={`/boards/${board.id}/edit`} className="btn">
             Back to Editor
           </Link>
-          <button type="button" className="btn" onClick={() => setShowFinal(true)}>
-            Final Jeopardy
-          </button>
-          <button type="button" className="btn btn-danger" onClick={resetGame}>
+          <FinalJeopardyRainbowWrap>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => {
+                if (id) {
+                  setBoard(getBoard(id) ?? board);
+                }
+                setShowFinal(true);
+              }}
+            >
+              Final Jeopardy
+            </button>
+          </FinalJeopardyRainbowWrap>
+          <button type="button" className="btn btn-danger" onClick={() => void resetGame()}>
             Reset Game
           </button>
         </div>
@@ -240,7 +299,6 @@ export function GamePage() {
       <TeamScoreDock
         teams={session.teams}
         teamCount={teamCount}
-        colors={TEAM_COLORS}
         onScoreDelta={updateTeamScore}
         onSetScore={setTeamScore}
         onTeamNameChange={(teamId, name) =>
@@ -254,9 +312,30 @@ export function GamePage() {
           )
         }
         onTeamCountChange={resizeTeams}
+        onTeamThemeChange={(teamId, partial) =>
+          setSession((s) =>
+            s
+              ? {
+                  ...s,
+                  teams: s.teams.map((t) =>
+                    t.id === teamId
+                      ? {
+                          ...t,
+                          theme: {
+                            color: partial.color ?? t.theme?.color ?? DEFAULT_TEAM_COLORS[0],
+                            textColor: partial.textColor ?? t.theme?.textColor ?? '#ffffff',
+                            background: t.theme?.background,
+                          },
+                        }
+                      : t,
+                  ),
+                }
+              : s,
+          )
+        }
       />
 
-      {activeClue && isMiniGame && (
+      {activeClue && isCharacterGuess && (
         <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
           <CharacterGuessPanel
             board={board}
@@ -274,14 +353,38 @@ export function GamePage() {
         </div>
       )}
 
-      {activeClue && !isMiniGame && (
+      {activeClue && isCropReveal && activeClue.clue.miniGame?.gameType === 'cropReveal' && (
+        <div className="clue-overlay cg-overlay" role="dialog" aria-modal="true">
+          <CropRevealPanel
+            board={board}
+            categoryName={activeClue.category.name}
+            clue={activeClue.clue}
+            mode="game"
+            progress={
+              session.cropRevealProgress[activeClue.clue.id]
+              ?? createCropRevealRuntimeState(activeClue.clue.id, activeClue.clue.miniGame)
+            }
+            onProgressChange={(p) => updateCropRevealProgress(activeClue.clue.id, p)}
+            teams={session.teams}
+            teamScoreSelections={clueScoring[activeClue.clue.id] ?? {}}
+            onTeamScore={(teamId, delta) => toggleClueScore(activeClue.clue.id, teamId, delta)}
+            onBackToBoard={closeOverlay}
+            onMarkUsed={markClueUsed}
+          />
+        </div>
+      )}
+
+      {activeClue && !isCharacterGuess && !isCropReveal && (
         <ClueOverlay
           categoryName={activeClue.category.name}
           clue={activeClue.clue}
           showAnswer={showAnswer}
+          enlargeImages
           teamScoreSelections={
             revealed ? (clueScoring[revealed.clueId] ?? {}) : {}
           }
+          attachmentRevealIndex={attachmentRevealIndex}
+          onRevealNextAttachment={revealNextAttachment}
           onClose={closeOverlay}
           onShowAnswer={() => setShowAnswer(true)}
           onMarkUsed={markClueUsed}
@@ -307,19 +410,19 @@ export function GamePage() {
 function TeamScoreDock({
   teams,
   teamCount,
-  colors,
   onScoreDelta,
   onSetScore,
   onTeamNameChange,
   onTeamCountChange,
+  onTeamThemeChange,
 }: {
   teams: Team[];
   teamCount: number;
-  colors: string[];
   onScoreDelta: (teamId: string, delta: number) => void;
   onSetScore: (teamId: string, score: number) => void;
   onTeamNameChange: (teamId: string, name: string) => void;
   onTeamCountChange: (count: number) => void;
+  onTeamThemeChange: (teamId: string, partial: { color?: string; textColor?: string }) => void;
 }) {
   return (
     <footer className="team-dock" aria-label="Team scores">
@@ -347,11 +450,21 @@ function TeamScoreDock({
         </div>
       </div>
       <div className="team-dock-cards">
-        {teams.map((team, i) => (
+        {teams.map((team, i) => {
+          const migrated = migrateTeam(team, i);
+          const accent = migrated.theme?.color ?? DEFAULT_TEAM_COLORS[i % DEFAULT_TEAM_COLORS.length];
+          const textColor = migrated.theme?.textColor ?? '#ffffff';
+          return (
           <div
             key={team.id}
             className="team-dock-card"
-            style={{ borderColor: colors[i % colors.length] }}
+            style={{
+              borderColor: accent,
+              background: migrated.theme?.background?.type === 'solid'
+                ? migrated.theme.background.color
+                : undefined,
+              color: textColor,
+            }}
           >
             <input
               className="team-name-input"
@@ -360,6 +473,17 @@ function TeamScoreDock({
               onChange={(e) => onTeamNameChange(team.id, e.target.value)}
             />
             <span className="team-score game-value">{formatPeso(team.score)}</span>
+            <div className="team-style-row">
+              <label className="sr-only" htmlFor={`team-color-${team.id}`}>Team color</label>
+              <input
+                id={`team-color-${team.id}`}
+                type="color"
+                className="team-color-input"
+                value={accent}
+                title="Team color"
+                onChange={(e) => onTeamThemeChange(team.id, { color: e.target.value })}
+              />
+            </div>
             <div className="team-score-buttons">
               <button
                 type="button"
@@ -381,8 +505,13 @@ function TeamScoreDock({
                 type="button"
                 className="btn btn-sm btn-ghost"
                 aria-label={`Set ${team.name} score manually`}
-                onClick={() => {
-                  const val = window.prompt(`Set score for ${team.name}:`, String(team.score));
+                onClick={async () => {
+                  const val = await promptDialog({
+                    title: `Set score for ${team.name}`,
+                    defaultValue: String(team.score),
+                    inputLabel: 'Score',
+                    requireInput: true,
+                  });
                   if (val !== null && !Number.isNaN(Number(val))) {
                     onSetScore(team.id, Number(val));
                   }
@@ -392,7 +521,8 @@ function TeamScoreDock({
               </button>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
     </footer>
   );

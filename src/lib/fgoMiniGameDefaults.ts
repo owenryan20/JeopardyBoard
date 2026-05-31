@@ -1,4 +1,4 @@
-import type { BoardDataset, MiniGameConfig } from '../types/board';
+import type { BoardDataset, CharacterGuessMiniGameConfig } from '../types/board';
 import type { AppDataset } from '../types/dataset';
 import { isFgoLivePresetDataset } from '../types/dataset';
 import { FGO_DISAMBIGUATION_FIELDS } from './fgoServantsPreset';
@@ -44,9 +44,9 @@ export function isFgoServantsBoardDataset(dataset: BoardDataset | AppDataset): b
 }
 
 export function applyFgoDatasetToMiniGame(
-  config: MiniGameConfig,
+  config: CharacterGuessMiniGameConfig,
   dataset: BoardDataset,
-): MiniGameConfig {
+): CharacterGuessMiniGameConfig {
   const columnSet = new Set(dataset.columns);
   const attributes = FGO_ATTRIBUTE_DEFAULTS.filter((a) => columnSet.has(a.column));
 

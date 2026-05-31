@@ -21,6 +21,14 @@
   --game-bg: #0a1628;
   --game-gold: #fbbf24;
   --game-panel: #132238;
+  /* Stacking order (low → high) */
+  --z-dropdown: 50;
+  --z-editor-overlay: 90;
+  --z-modal: 100;
+  --z-toast: 200;
+  --z-clue-overlay: 500;
+  --z-board-appearance: 1000;
+  --z-app-dialog: 10000;
 }
 
 *,
@@ -214,7 +222,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  z-index: var(--z-modal);
   padding: 24px;
 }
 
