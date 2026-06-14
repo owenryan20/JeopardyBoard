@@ -1,8 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import type { CropAnchor, TileAttachment } from '../../types/board';
-import { anchorFocalPoint, cropInsetForAnchor } from '../../lib/cropReveal';
+import { anchorFocalPoint, cropInsetForAnchor, cropZoomTransform } from '../../lib/cropReveal';
 import { TileAttachmentView } from '../clue/TileAttachmentView';
-import { ImageEnlargeOverlay } from '../clue/ImageEnlargeOverlay';
 import './CropRevealViewport.css';
 
 interface CropRevealViewportProps {
@@ -12,12 +11,64 @@ interface CropRevealViewportProps {
   customAnchorX?: number;
   customAnchorY?: number;
   interactive?: boolean;
-  /** When true, click to enlarge while preserving current crop reveal (game mode). */
-  enlargeable?: boolean;
   onAnchorChange?: (x: number, y: number) => void;
   className?: string;
   mediaClassName?: string;
   transition?: boolean;
+}
+
+function CropRevealMedia({
+  attachment,
+  mediaClassName,
+  mode,
+  revealPercent,
+  anchor,
+  customAnchorX,
+  customAnchorY,
+  transition,
+}: {
+  attachment: TileAttachment;
+  mediaClassName: string;
+  mode: 'zoom' | 'clip';
+  revealPercent: number;
+  anchor: CropAnchor;
+  customAnchorX?: number;
+  customAnchorY?: number;
+  transition: boolean;
+}) {
+  if (mode === 'zoom') {
+    const { scale, originX, originY } = cropZoomTransform(
+      revealPercent,
+      anchor,
+      customAnchorX,
+      customAnchorY,
+    );
+
+    return (
+      <div className="cr-viewport-zoom">
+        <div
+          className={`cr-zoom-inner${transition ? ' cr-zoom-inner-transition' : ''}`}
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: `${originX}% ${originY}%`,
+          }}
+        >
+          <TileAttachmentView attachment={attachment} className={mediaClassName} />
+        </div>
+      </div>
+    );
+  }
+
+  const inset = cropInsetForAnchor(revealPercent, anchor, customAnchorX, customAnchorY);
+
+  return (
+    <div
+      className={`cr-viewport${transition ? ' cr-viewport-transition' : ''}`}
+      style={{ clipPath: `inset(${inset})` }}
+    >
+      <TileAttachmentView attachment={attachment} className={mediaClassName} />
+    </div>
+  );
 }
 
 export function CropRevealViewport({
@@ -27,7 +78,6 @@ export function CropRevealViewport({
   customAnchorX,
   customAnchorY,
   interactive = false,
-  enlargeable = false,
   onAnchorChange,
   className = '',
   mediaClassName = 'cr-media',
@@ -35,10 +85,8 @@ export function CropRevealViewport({
 }: CropRevealViewportProps) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [dragging, setDragging] = useState(false);
-  const [enlarged, setEnlarged] = useState(false);
   const focal = anchorFocalPoint(anchor, customAnchorX, customAnchorY);
-  const inset = cropInsetForAnchor(revealPercent, anchor, customAnchorX, customAnchorY);
-  const canEnlarge = enlargeable && !interactive;
+  const displayMode = interactive ? 'clip' : 'zoom';
 
   const updateFromPointer = useCallback(
     (clientX: number, clientY: number) => {
@@ -53,32 +101,31 @@ export function CropRevealViewport({
     [onAnchorChange],
   );
 
+  const viewportContent = (
+    <CropRevealMedia
+      attachment={attachment}
+      mediaClassName={mediaClassName}
+      mode={displayMode}
+      revealPercent={revealPercent}
+      anchor={anchor}
+      customAnchorX={customAnchorX}
+      customAnchorY={customAnchorY}
+      transition={transition}
+    />
+  );
+
   return (
-    <>
-      <div
-        ref={wrapRef}
-        className={`cr-viewport-wrap${interactive ? ' cr-viewport-wrap-interactive' : ''}${canEnlarge ? ' cr-viewport-wrap-enlargeable' : ''}${dragging ? ' cr-viewport-wrap-dragging' : ''}${className ? ` ${className}` : ''}`}
-        onClick={() => {
-          if (canEnlarge) setEnlarged(true);
-        }}
-        onKeyDown={(event) => {
-          if (!canEnlarge) return;
-          if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            setEnlarged(true);
-          }
-        }}
-        role={canEnlarge ? 'button' : undefined}
-        tabIndex={canEnlarge ? 0 : undefined}
-        aria-label={canEnlarge ? 'Enlarge image' : undefined}
-        onPointerDown={(e) => {
-          if (!interactive || !onAnchorChange) return;
-          e.preventDefault();
-          e.stopPropagation();
-          wrapRef.current?.setPointerCapture(e.pointerId);
-          setDragging(true);
-          updateFromPointer(e.clientX, e.clientY);
-        }}
+    <div
+      ref={wrapRef}
+      className={`cr-viewport-wrap${interactive ? ' cr-viewport-wrap-interactive' : ''}${dragging ? ' cr-viewport-wrap-dragging' : ''}${displayMode === 'zoom' ? ' cr-viewport-wrap-zoom' : ''}${className ? ` ${className}` : ''}`}
+      onPointerDown={(e) => {
+        if (!interactive || !onAnchorChange) return;
+        e.preventDefault();
+        e.stopPropagation();
+        wrapRef.current?.setPointerCapture(e.pointerId);
+        setDragging(true);
+        updateFromPointer(e.clientX, e.clientY);
+      }}
       onPointerMove={(e) => {
         if (!dragging || !interactive) return;
         updateFromPointer(e.clientX, e.clientY);
@@ -93,12 +140,7 @@ export function CropRevealViewport({
         wrapRef.current?.releasePointerCapture(e.pointerId);
       }}
     >
-      <div
-        className={`cr-viewport${transition ? ' cr-viewport-transition' : ''}`}
-        style={{ clipPath: `inset(${inset})` }}
-      >
-        <TileAttachmentView attachment={attachment} className={mediaClassName} />
-      </div>
+      {viewportContent}
       {interactive && (
         <span
           className="cr-focal-marker"
@@ -106,26 +148,6 @@ export function CropRevealViewport({
           aria-hidden="true"
         />
       )}
-      </div>
-
-      {canEnlarge && (
-        <ImageEnlargeOverlay
-          open={enlarged}
-          onClose={() => setEnlarged(false)}
-          label="Enlarged crop reveal"
-        >
-          <div
-            className={`cr-viewport-wrap cr-viewport-wrap-lightbox${className ? ` ${className}` : ''}`}
-          >
-            <div
-              className={`cr-viewport${transition ? ' cr-viewport-transition' : ''}`}
-              style={{ clipPath: `inset(${inset})` }}
-            >
-              <TileAttachmentView attachment={attachment} className={mediaClassName} />
-            </div>
-          </div>
-        </ImageEnlargeOverlay>
-      )}
-    </>
+    </div>
   );
 }

@@ -283,8 +283,10 @@ function migrateClue(clue: Partial<Clue> & { id: string; value: number }): Clue 
     isDailyDouble: Boolean(clue.isDailyDouble),
     tags: Array.isArray(clue.tags) ? clue.tags : [],
     isUsed: Boolean(clue.isUsed),
+    answerMedia: clue.answerMedia,
     attachments: clue.attachments,
     attachmentDisplayMode: clue.attachmentDisplayMode,
+    attachmentAutoplay: Boolean(clue.attachmentAutoplay),
     miniGame: type === 'miniGame' ? migrateMiniGameConfig(clue.miniGame, clue.value) : clue.miniGame,
   };
   return migrateClueAttachments(base);

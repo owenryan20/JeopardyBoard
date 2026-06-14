@@ -10,7 +10,7 @@ import type {
   MiniGameAttribute,
 } from '../../types/board';
 import { isCharacterGuessConfig } from '../../types/board';
-import { DEFAULT_POINT_VALUES } from '../../types/board';
+import { PointValueInput } from './PointValueInput';
 import { FinalJeopardyCategoryField } from './FinalJeopardyCategoryField';
 import type { AppDataset, DatasetKind } from '../../types/dataset';
 import {
@@ -267,11 +267,11 @@ export function MiniGameEditor({
               {!isFinal && (
               <div className="field">
                 <label className="label" htmlFor="mg-value">Point value</label>
-                <select id="mg-value" className="select" value={config.pointValue} onChange={(e) => updateConfig({ pointValue: Number(e.target.value) })}>
-                  {DEFAULT_POINT_VALUES.map((v) => (
-                    <option key={v} value={v}>{v}</option>
-                  ))}
-                </select>
+                <PointValueInput
+                  id="mg-value"
+                  value={config.pointValue}
+                  onChange={(value) => updateConfig({ pointValue: value })}
+                />
               </div>
               )}
               <div className="field">

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TileAttachment } from '../../types/board';
 import { getMediaBlob } from '../../lib/mediaStorage';
 import { AudioAttachmentPlayer } from './AudioAttachmentPlayer';
@@ -9,12 +9,20 @@ interface TileAttachmentViewProps {
   className?: string;
   /** When true, image attachments can be clicked to enlarge (game mode). */
   enlargeable?: boolean;
+  /** When true, audio and video start playing once loaded and visible. */
+  autoplay?: boolean;
 }
 
-export function TileAttachmentView({ attachment, className = 'clue-overlay-media', enlargeable = false }: TileAttachmentViewProps) {
+export function TileAttachmentView({
+  attachment,
+  className = 'clue-overlay-media',
+  enlargeable = false,
+  autoplay = false,
+}: TileAttachmentViewProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
   const [enlarged, setEnlarged] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     let objectUrl: string | null = null;
@@ -46,6 +54,13 @@ export function TileAttachmentView({ attachment, className = 'clue-overlay-media
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [attachment.mediaId, attachment.storage, attachment.url, attachment.thumbnailUrl]);
+
+  useEffect(() => {
+    if (!autoplay || attachment.type !== 'video' || !src) return;
+    const video = videoRef.current;
+    if (!video) return;
+    void video.play().catch(() => {});
+  }, [autoplay, attachment.type, src]);
 
   if (missing) {
     return (
@@ -102,9 +117,16 @@ export function TileAttachmentView({ attachment, className = 'clue-overlay-media
           {displayTitle ? <figcaption>{displayTitle}</figcaption> : null}
         </figure>
       ) : attachment.type === 'video' ? (
-        <video src={src} controls className="attachment-video" title={displayTitle || undefined} />
+        <video
+          ref={videoRef}
+          src={src}
+          controls
+          playsInline
+          className="attachment-video"
+          title={displayTitle || undefined}
+        />
       ) : (
-        <AudioAttachmentPlayer src={src} title={displayTitle ?? ''} />
+        <AudioAttachmentPlayer src={src} title={displayTitle ?? ''} autoplay={autoplay} />
       )}
       {enlargeable && attachment.type === 'image' && (
         <ImageEnlargeOverlay

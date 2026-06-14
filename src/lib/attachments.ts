@@ -89,6 +89,8 @@ export function collectLocalMediaIdsFromClue(clue: Clue): string[] {
   }
   const legacy = normalizeMedia(clue.media);
   if (legacy && isLocalMedia(legacy) && legacy.mediaId) ids.push(legacy.mediaId);
+  const answer = normalizeMedia(clue.answerMedia);
+  if (answer && isLocalMedia(answer) && answer.mediaId) ids.push(answer.mediaId);
   if (clue.miniGame?.gameType === 'cropReveal' && clue.miniGame.image.storage === 'local' && clue.miniGame.image.mediaId) {
     ids.push(clue.miniGame.image.mediaId);
   }

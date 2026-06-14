@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
 import { CropRevealPanel } from '../components/minigame/CropRevealPanel';
 import { ClueAttachments } from '../components/clue/ClueAttachments';
+import { ClueAnswerMedia } from '../components/clue/ClueAnswerMedia';
 import { TeamScoreQuickActions } from '../components/game/TeamScoreQuickActions';
 import type { Board, Clue } from '../types/board';
 import { isCharacterGuessTile, isCropRevealTile } from '../types/board';
@@ -246,9 +247,12 @@ export function ClueOverlay({
           />
         )}
         {showAnswer && (
-          <p className="clue-overlay-answer">
-            <strong>Answer:</strong> {clue.answer || '(No answer)'}
-          </p>
+          <>
+            <p className="clue-overlay-answer">
+              <strong>Answer:</strong> {clue.answer || '(No answer)'}
+            </p>
+            <ClueAnswerMedia clue={clue} enlargeImages={enlargeImages} />
+          </>
         )}
         <div className="clue-overlay-actions">
           {!showAnswer && (

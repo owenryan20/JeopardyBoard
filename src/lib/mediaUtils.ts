@@ -1,4 +1,4 @@
-import type { Board, Media, MediaType } from '../types/board';
+import type { Board, Clue, Media, MediaType } from '../types/board';
 import { collectAllLocalMediaIds } from './attachments';
 
 export const MEDIA_SIZE_LIMITS: Record<MediaType, number> = {
@@ -98,6 +98,18 @@ export function normalizeMedia(raw?: Partial<Media> | null): Media | undefined {
 export function mediaForSave(raw?: Partial<Media> | null): Media | undefined {
   const media = normalizeMedia(raw);
   return media && hasClueMedia(media) ? media : undefined;
+}
+
+/** Answer media is limited to image or video. */
+export function answerMediaForSave(raw?: Partial<Media> | null): Media | undefined {
+  const media = normalizeMedia(raw);
+  if (!media || !hasClueMedia(media)) return undefined;
+  if (media.type !== 'image' && media.type !== 'video') return undefined;
+  return media;
+}
+
+export function hasAnswerMedia(clue: Clue): boolean {
+  return Boolean(answerMediaForSave(clue.answerMedia));
 }
 
 export function collectLocalMediaIds(board: Board): string[] {

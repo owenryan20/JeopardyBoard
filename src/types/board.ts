@@ -174,8 +174,12 @@ export interface Clue {
   isDailyDouble: boolean;
   /** @deprecated Use attachments instead — migrated on load. */
   media?: Media;
+  /** Optional image or video shown with the answer when host reveals it. */
+  answerMedia?: Media;
   attachments?: TileAttachment[];
   attachmentDisplayMode?: AttachmentDisplayMode;
+  /** When true, audio and video attachments autoplay when shown in game. */
+  attachmentAutoplay?: boolean;
   tags: string[];
   isUsed: boolean;
   miniGame?: MiniGameConfig;
@@ -269,6 +273,8 @@ export interface GameSession {
 }
 
 export const DEFAULT_POINT_VALUES = [100, 200, 300, 400, 500];
+export const MIN_POINT_VALUE = 1;
+export const MAX_POINT_VALUE = 99_999;
 export const CATEGORY_COUNT = 6;
 export const CLUES_PER_CATEGORY = 5;
 export const MIN_CLUES_PER_CATEGORY = 1;

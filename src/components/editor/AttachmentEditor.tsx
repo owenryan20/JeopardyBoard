@@ -130,13 +130,23 @@ interface AttachmentEditorProps {
 
   displayMode: AttachmentDisplayMode;
 
+  attachmentAutoplay?: boolean;
+
   onChange: (attachments: TileAttachment[], displayMode: AttachmentDisplayMode) => void;
+
+  onAttachmentAutoplayChange?: (autoplay: boolean) => void;
 
 }
 
 
 
-export function AttachmentEditor({ attachments, displayMode, onChange }: AttachmentEditorProps) {
+export function AttachmentEditor({
+  attachments,
+  displayMode,
+  attachmentAutoplay = false,
+  onChange,
+  onAttachmentAutoplayChange,
+}: AttachmentEditorProps) {
 
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
 
@@ -435,6 +445,30 @@ export function AttachmentEditor({ attachments, displayMode, onChange }: Attachm
         </label>
 
       </div>
+
+
+
+      <label className="attachment-autoplay-toggle toggle-row">
+
+        <span className="attachment-autoplay-label">Autoplay audio &amp; video when shown in game</span>
+
+        <span className="toggle">
+
+          <input
+
+            type="checkbox"
+
+            checked={attachmentAutoplay}
+
+            onChange={(e) => onAttachmentAutoplayChange?.(e.target.checked)}
+
+          />
+
+          <span className="toggle-slider" />
+
+        </span>
+
+      </label>
 
 
 

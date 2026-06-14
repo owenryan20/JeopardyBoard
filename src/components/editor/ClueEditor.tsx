@@ -1,15 +1,17 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { AttachmentDisplayMode, Clue, TileAttachment } from '../../types/board';
-import { DEFAULT_POINT_VALUES } from '../../types/board';
 import {
   attachmentsForSave,
   DEFAULT_ATTACHMENT_DISPLAY_MODE,
 } from '../../lib/attachments';
 import { canResetTile } from '../../lib/boardFactory';
 import { confirmDialog } from '../../lib/dialog';
+import { answerMediaForSave } from '../../lib/mediaUtils';
 import { AttachmentEditor } from './AttachmentEditor';
+import { AnswerMediaEditor } from './AnswerMediaEditor';
 import { FinalJeopardyCategoryField } from './FinalJeopardyCategoryField';
+import { PointValueInput } from './PointValueInput';
 import './ClueEditor.css';
 
 interface ClueEditorProps {
@@ -54,6 +56,7 @@ export function ClueEditor({
 
   const prepareClueForSave = (next: Clue): Clue => ({
     ...next,
+    answerMedia: answerMediaForSave(next.answerMedia),
     attachments: attachmentsForSave(next.attachments),
     attachmentDisplayMode: next.attachmentDisplayMode ?? DEFAULT_ATTACHMENT_DISPLAY_MODE,
     media: undefined,
@@ -163,23 +166,21 @@ export function ClueEditor({
             <p className="field-hint">{draft.answer.length}/500</p>
           </div>
 
+          <AnswerMediaEditor
+            value={draft.answerMedia}
+            onChange={(answerMedia) => update('answerMedia', answerMedia)}
+          />
+
           {!isFinal && (
           <div className="field">
             <label className="label" htmlFor="clue-value">
               Point Value
             </label>
-            <select
+            <PointValueInput
               id="clue-value"
-              className="select"
               value={draft.value}
-              onChange={(e) => update('value', Number(e.target.value))}
-            >
-              {DEFAULT_POINT_VALUES.map((v) => (
-                <option key={v} value={v}>
-                  {v}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => update('value', value)}
+            />
           </div>
           )}
 
@@ -239,7 +240,9 @@ export function ClueEditor({
           <AttachmentEditor
             attachments={draft.attachments ?? []}
             displayMode={draft.attachmentDisplayMode ?? DEFAULT_ATTACHMENT_DISPLAY_MODE}
+            attachmentAutoplay={draft.attachmentAutoplay ?? false}
             onChange={handleAttachmentsChange}
+            onAttachmentAutoplayChange={(attachmentAutoplay) => update('attachmentAutoplay', attachmentAutoplay)}
           />
           <p className="field-hint media-storage-hint">
             Uploads are saved in this browser. Use ZIP export to move boards with media to another computer.
