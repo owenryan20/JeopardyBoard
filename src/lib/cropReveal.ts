@@ -120,6 +120,52 @@ export function anchorToObjectPosition(
   return `${x}% ${y}%`;
 }
 
+/** Crop window as percentages of the source image (square window). */
+export interface CropRect {
+  left: number;
+  top: number;
+  size: number;
+}
+
+export function cropRectForAnchor(
+  revealPercent: number,
+  anchor: CropAnchor,
+  customX?: number,
+  customY?: number,
+): CropRect {
+  const size = Math.max(0, Math.min(100, revealPercent));
+  if (size >= 100) {
+    return { left: 0, top: 0, size: 100 };
+  }
+
+  const focal = anchorFocalPoint(anchor, customX, customY);
+  let left = focal.x - size / 2;
+  let top = focal.y - size / 2;
+  left = Math.max(0, Math.min(100 - size, left));
+  top = Math.max(0, Math.min(100 - size, top));
+
+  return { left, top, size };
+}
+
+/** Scale and origin to zoom the crop region to fill the viewport without exposing its position. */
+export function cropZoomTransform(
+  revealPercent: number,
+  anchor: CropAnchor,
+  customX?: number,
+  customY?: number,
+): { scale: number; originX: number; originY: number } {
+  const { left, top, size } = cropRectForAnchor(revealPercent, anchor, customX, customY);
+  if (size >= 100) {
+    return { scale: 1, originX: 50, originY: 50 };
+  }
+
+  return {
+    scale: 100 / size,
+    originX: left + size / 2,
+    originY: top + size / 2,
+  };
+}
+
 /** CSS clip-path inset for a crop window anchored at a focal point (equal % on each axis). */
 export function cropInsetForAnchor(
   revealPercent: number,
@@ -127,14 +173,8 @@ export function cropInsetForAnchor(
   customX?: number,
   customY?: number,
 ): string {
-  const size = Math.max(0, Math.min(100, revealPercent));
+  const { left, top, size } = cropRectForAnchor(revealPercent, anchor, customX, customY);
   if (size >= 100) return '0%';
-
-  const focal = anchorFocalPoint(anchor, customX, customY);
-  let left = focal.x - size / 2;
-  let top = focal.y - size / 2;
-  left = Math.max(0, Math.min(100 - size, left));
-  top = Math.max(0, Math.min(100 - size, top));
 
   const right = 100 - size - left;
   const bottom = 100 - size - top;

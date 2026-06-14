@@ -32,7 +32,12 @@ export function ClueAttachments({
     return (
       <div className="clue-attachments clue-attachments-all">
         {attachments.map((att) => (
-          <TileAttachmentView key={att.id} attachment={att} enlargeable={enlargeImages} />
+          <TileAttachmentView
+            key={att.id}
+            attachment={att}
+            enlargeable={enlargeImages}
+            autoplay={clue.attachmentAutoplay}
+          />
         ))}
       </div>
     );
@@ -49,7 +54,12 @@ export function ClueAttachments({
         </p>
       )}
       {visible.map((att) => (
-        <TileAttachmentView key={att.id} attachment={att} enlargeable={enlargeImages} />
+        <TileAttachmentView
+          key={att.id}
+          attachment={att}
+          enlargeable={enlargeImages}
+          autoplay={clue.attachmentAutoplay}
+        />
       ))}
       {hasMore && onRevealNext && (
         <button type="button" className="btn btn-sm attachment-reveal-next" onClick={onRevealNext}>

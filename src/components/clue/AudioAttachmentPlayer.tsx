@@ -5,6 +5,7 @@ import './AudioAttachmentPlayer.css';
 interface AudioAttachmentPlayerProps {
   src: string;
   title?: string;
+  autoplay?: boolean;
 }
 
 function formatTime(seconds: number): string {
@@ -14,7 +15,7 @@ function formatTime(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
-export function AudioAttachmentPlayer({ src, title = '' }: AudioAttachmentPlayerProps) {
+export function AudioAttachmentPlayer({ src, title = '', autoplay = false }: AudioAttachmentPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -25,6 +26,13 @@ export function AudioAttachmentPlayer({ src, title = '' }: AudioAttachmentPlayer
     setCurrent(0);
     setDuration(0);
   }, [src]);
+
+  useEffect(() => {
+    if (!autoplay) return;
+    const audio = audioRef.current;
+    if (!audio) return;
+    void audio.play().catch(() => {});
+  }, [autoplay, src]);
 
   const togglePlay = () => {
     const audio = audioRef.current;

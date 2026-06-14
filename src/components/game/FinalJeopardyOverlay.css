@@ -6,7 +6,7 @@
 
 .final-minigame-wrap {
   margin: 12px 0;
-  max-height: 55vh;
+  max-height: min(72vh, 900px);
   overflow: auto;
 }
 

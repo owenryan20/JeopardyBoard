@@ -210,7 +210,6 @@ export function CropRevealPanel({
         customAnchorY={config.customAnchorY}
         className="cr-viewport-panel"
         transition
-        enlargeable={mode === 'game'}
       />
 
       {!finished && !awaitingMaxAttemptsChoice && (

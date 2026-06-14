@@ -1,5 +1,6 @@
 import { formatPeso } from '../../lib/currency';
 import { ClueAttachments } from '../clue/ClueAttachments';
+import { ClueAnswerMedia } from '../clue/ClueAnswerMedia';
 import { CharacterGuessPanel } from '../minigame/CharacterGuessPanel';
 import { CropRevealPanel } from '../minigame/CropRevealPanel';
 import type { Board, GameSession, Team } from '../../types/board';
@@ -212,6 +213,9 @@ export function FinalJeopardyOverlay({
             <p className="clue-overlay-answer">
               <strong>Answer:</strong> {answerLabel || '(No answer set)'}
             </p>
+            {!isCharacterGuess && !isCropReveal && (
+              <ClueAnswerMedia clue={tile} enlargeImages />
+            )}
             <p className="final-hint">Mark each team correct or incorrect to apply wagers.</p>
             <OutcomeForm
               teams={session.teams}

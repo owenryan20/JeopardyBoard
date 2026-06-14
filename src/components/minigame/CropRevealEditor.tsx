@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Upload } from 'lucide-react';
 import type { Board, Clue, CropAnchor, CropRevealMiniGameConfig } from '../../types/board';
-import { DEFAULT_POINT_VALUES } from '../../types/board';
+import { PointValueInput } from '../editor/PointValueInput';
 import { canResetTile } from '../../lib/boardFactory';
 import {
   createDefaultCropRevealConfig,
@@ -168,16 +168,11 @@ export function CropRevealEditor({
           {!isFinal && (
             <div className="field">
               <label className="label" htmlFor="cr-value">Point value</label>
-              <select
+              <PointValueInput
                 id="cr-value"
-                className="select"
-                value={draft.value}
-                onChange={(e) => updateConfig({ pointValue: Number(e.target.value) })}
-              >
-                {DEFAULT_POINT_VALUES.map((v) => (
-                  <option key={v} value={v}>{v}</option>
-                ))}
-              </select>
+                value={config.pointValue}
+                onChange={(value) => updateConfig({ pointValue: value })}
+              />
             </div>
           )}
 

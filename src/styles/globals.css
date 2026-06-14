@@ -21,6 +21,11 @@
   --game-bg: #0a1628;
   --game-gold: #fbbf24;
   --game-panel: #132238;
+  --scrollbar-size: 10px;
+  --scrollbar-track: rgba(15, 23, 42, 0.1);
+  --scrollbar-thumb: rgba(100, 116, 139, 0.45);
+  --scrollbar-thumb-hover: rgba(71, 85, 105, 0.7);
+  --scrollbar-thumb-active: rgba(29, 78, 216, 0.75);
   /* Stacking order (low → high) */
   --z-dropdown: 50;
   --z-editor-overlay: 90;
@@ -391,4 +396,55 @@ a {
 .game-value {
   color: var(--game-gold);
   font-weight: 700;
+}
+
+/* Custom scrollbars (Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Custom scrollbars (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: var(--scrollbar-size);
+  height: var(--scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: var(--scrollbar-thumb-active);
+}
+
+*::-webkit-scrollbar-corner {
+  background: var(--scrollbar-track);
+}
+
+/* Dark surfaces: game board, clue overlays, modals */
+.board-themed,
+.clue-overlay,
+.clue-overlay-panel,
+.cg-panel-game,
+.cr-panel-game,
+.game-screen,
+.modal,
+.modal-body {
+  --scrollbar-track: rgba(0, 0, 0, 0.45);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.38);
+  --scrollbar-thumb-hover: rgba(251, 191, 36, 0.55);
+  --scrollbar-thumb-active: rgba(251, 191, 36, 0.75);
 }

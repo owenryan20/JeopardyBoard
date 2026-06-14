@@ -6,6 +6,8 @@ import {
   createDefaultCropRevealConfig,
   cropInsetForAnchor,
   cropInsetPercent,
+  cropRectForAnchor,
+  cropZoomTransform,
   expandCropPercent,
   isCropRevealAnswerCorrect,
   validateCropRevealConfig,
@@ -59,6 +61,16 @@ describe('cropReveal', () => {
   it('uses custom focal point for custom anchor', () => {
     expect(anchorFocalPoint('custom', 25, 75)).toEqual({ x: 25, y: 75 });
     expect(cropInsetForAnchor(10, 'custom', 25, 75)).toBe('70% 70% 20% 20%');
+  });
+
+  it('computes zoom transform from crop rect', () => {
+    expect(cropRectForAnchor(15, 'center')).toEqual({ left: 42.5, top: 42.5, size: 15 });
+    expect(cropZoomTransform(15, 'center')).toEqual({
+      scale: 100 / 15,
+      originX: 50,
+      originY: 50,
+    });
+    expect(cropZoomTransform(100, 'center')).toEqual({ scale: 1, originX: 50, originY: 50 });
   });
 
   it('enters maxAttemptsReached instead of failed when max attempts hit', () => {

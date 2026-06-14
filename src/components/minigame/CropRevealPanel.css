@@ -2,14 +2,16 @@
   background: var(--surface, #1e293b);
   border-radius: 12px;
   padding: 1.25rem;
-  max-width: 720px;
-  width: min(96vw, 720px);
+  width: 100%;
+  max-width: min(96vw, 1600px);
   margin: auto;
+  box-sizing: border-box;
 }
 
 .cr-panel-game {
-  max-height: min(92vh, 900px);
+  max-height: calc(100dvh - 24px);
   overflow-y: auto;
+  border: 2px solid var(--game-gold, #fbbf24);
 }
 
 .cr-header {
