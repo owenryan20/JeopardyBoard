@@ -11,7 +11,7 @@ import { GamePage } from './pages/GamePage';
 import { MyBoardsPage } from './pages/MyBoardsPage';
 import { RecentlyPlayedPage } from './pages/RecentlyPlayedPage';
 import { TemplatesPage } from './pages/TemplatesPage';
-import { PlaceholderPage } from './pages/PlaceholderPage';
+import { SettingsPage } from './pages/SettingsPage';
 import { PreviewPage } from './pages/PreviewPage';
 
 export default function App() {
@@ -27,7 +27,7 @@ export default function App() {
         <Route path="datasets/:id" element={<DatasetBuilderPage />} />
         <Route path="templates" element={<TemplatesPage />} />
         <Route path="recent" element={<RecentlyPlayedPage />} />
-        <Route path="settings" element={<PlaceholderPage title="Settings" description="App preferences" />} />
+        <Route path="settings" element={<SettingsPage />} />
       </Route>
       <Route
         path="boards/:id/edit"

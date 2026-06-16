@@ -1,0 +1,291 @@
+.buzzin-integration {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--radius);
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow, 0 1px 3px rgba(15, 23, 42, 0.08));
+}
+
+.buzzin-integration-compact {
+  background: rgba(19, 34, 56, 0.97);
+  border-color: rgba(251, 191, 36, 0.35);
+  color: #fff;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  min-width: 0;
+}
+
+.buzzin-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.buzzin-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.buzzin-description {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #64748b);
+  line-height: 1.45;
+}
+
+.buzzin-integration-compact .buzzin-description {
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.buzzin-integration-ghost.buzzin-integration-compact {
+  background: rgba(10, 22, 40, 0.42);
+  border-color: rgba(251, 191, 36, 0.22);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.buzzin-integration-ghost .buzzin-title,
+.buzzin-integration-ghost .buzzin-buzz-list-title {
+  opacity: 0.9;
+}
+
+.buzzin-integration-ghost .buzzin-description,
+.buzzin-integration-ghost .buzzin-status,
+.buzzin-integration-ghost .buzzin-empty {
+  opacity: 0.85;
+}
+
+.buzzin-integration-ghost .buzzin-buzz-item {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.buzzin-integration-ghost .btn {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.buzzin-integration-ghost .btn-primary {
+  background: rgba(29, 78, 216, 0.75);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.buzzin-integration-overlay {
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.buzzin-overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.buzzin-overlay-header .buzzin-title {
+  font-size: 0.875rem;
+}
+
+.buzzin-overlay-code {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.buzzin-overlay-code-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.buzzin-integration-overlay .buzzin-buzz-list {
+  max-height: min(22vh, 180px);
+}
+
+.buzzin-integration-overlay .buzzin-buzz-list-title {
+  font-size: 0.75rem;
+}
+
+.buzzin-create-btn {
+  align-self: flex-start;
+}
+
+.buzzin-integration-compact .buzzin-create-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.buzzin-code-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.buzzin-code-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.buzzin-code-controls {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.buzzin-code-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.06em;
+}
+
+.buzzin-integration-compact .buzzin-code-input {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.buzzin-copy-btn {
+  flex-shrink: 0;
+}
+
+.buzzin-integration-compact .buzzin-copy-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.buzzin-integration-compact .buzzin-copy-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.buzzin-status {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #64748b);
+}
+
+.buzzin-status-connected {
+  color: var(--color-success, #16a34a);
+}
+
+.buzzin-status-error {
+  color: var(--color-danger, #dc2626);
+}
+
+.buzzin-integration-compact .buzzin-status {
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.buzzin-integration-compact .buzzin-status-connected {
+  color: #4ade80;
+}
+
+.buzzin-integration-compact .buzzin-status-error {
+  color: #f87171;
+}
+
+.buzzin-buzz-list-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.buzzin-buzz-list-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted, #64748b);
+}
+
+.buzzin-integration-compact .buzzin-buzz-list-title {
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.buzzin-empty {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+}
+
+.buzzin-integration-compact .buzzin-empty {
+  color: rgba(148, 163, 184, 0.85);
+}
+
+.buzzin-buzz-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-height: min(28vh, 200px);
+  overflow-y: auto;
+}
+
+.buzzin-buzz-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-bg, #f8fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+
+.buzzin-integration-compact .buzzin-buzz-item {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.buzzin-buzz-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--color-primary-light, #dbeafe);
+  color: var(--color-primary, #1d4ed8);
+}
+
+.buzzin-integration-compact .buzzin-buzz-rank {
+  background: rgba(251, 191, 36, 0.2);
+  color: var(--game-gold, #fbbf24);
+}
+
+.buzzin-buzz-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.buzzin-reset-btn {
+  align-self: flex-start;
+}
+
+.buzzin-integration-compact .buzzin-reset-btn {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+
+.buzzin-integration-compact .buzzin-reset-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.buzzin-integration-compact .buzzin-reset-btn:disabled {
+  opacity: 0.45;
+}

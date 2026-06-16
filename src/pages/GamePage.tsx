@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { FinalJeopardyOverlay } from '../components/game/FinalJeopardyOverlay';
 import { FinalJeopardyRainbowWrap } from '../components/game/FinalJeopardyRainbowWrap';
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
 import { CropRevealPanel } from '../components/minigame/CropRevealPanel';
 import type { Board, CropRevealRuntimeState, GameSession, MiniGameProgress, Team } from '../types/board';
+import type { BuzzInBuzz } from '../types/buzzIn';
 import { isCharacterGuessTile, isCropRevealTile } from '../types/board';
 import { createCropRevealRuntimeState } from '../lib/cropReveal';
 import { confirmDialog, promptDialog } from '../lib/dialog';
@@ -23,6 +24,8 @@ import {
   upsertBoard,
 } from '../lib/storage';
 import { ClueOverlay, GameBoardGrid } from './PreviewPage';
+import { BuzzInIntegration } from '../components/buzzin/BuzzInIntegration';
+import { BuzzInClueToggle } from '../components/buzzin/BuzzInClueToggle';
 import './GameBoard.css';
 
 const TEAM_COUNT_OPTIONS = Array.from({ length: 9 }, (_, i) => i + 2);
@@ -46,6 +49,10 @@ export function GamePage() {
   const [showFinal, setShowFinal] = useState(false);
   const [teamCount, setTeamCount] = useState(3);
   const [clueScoring, setClueScoring] = useState<Record<string, Record<string, TeamClueScore>>>({});
+  const [showBuzzIn, setShowBuzzIn] = useState(false);
+  const [buzzInPulse, setBuzzInPulse] = useState(false);
+  const clueOverlayOpenRef = useRef(false);
+  const buzzPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -65,6 +72,33 @@ export function GamePage() {
     if (session) saveGameSession(session);
   }, [session]);
 
+  const handleBuzzInBuzz = useCallback((_buzz: BuzzInBuzz, _order: number) => {
+    if (clueOverlayOpenRef.current) {
+      setShowBuzzIn(true);
+    }
+    setBuzzInPulse(true);
+    if (buzzPulseTimerRef.current) {
+      clearTimeout(buzzPulseTimerRef.current);
+    }
+    buzzPulseTimerRef.current = setTimeout(() => {
+      setBuzzInPulse(false);
+      buzzPulseTimerRef.current = null;
+    }, 700);
+  }, []);
+
+  useEffect(
+    () => () => {
+      if (buzzPulseTimerRef.current) {
+        clearTimeout(buzzPulseTimerRef.current);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    clueOverlayOpenRef.current = Boolean(revealed) || showFinal;
+  }, [revealed, showFinal]);
+
   const themeStyles = useBoardThemeStyles(board);
 
   if (!board || !session) {
@@ -81,6 +115,8 @@ export function GamePage() {
 
   const activeClue =
     revealed && findClue(board, revealed.categoryId, revealed.clueId);
+
+  const clueOverlayOpen = Boolean(activeClue) || showFinal;
 
   const isCharacterGuess = activeClue && isCharacterGuessTile(activeClue.clue);
   const isCropReveal = activeClue && isCropRevealTile(activeClue.clue);
@@ -265,6 +301,14 @@ export function GamePage() {
           <Link to={`/boards/${board.id}/edit`} className="btn">
             Back to Editor
           </Link>
+          <button
+            type="button"
+            className={`btn${showBuzzIn ? ' btn-primary' : ''}`}
+            aria-pressed={showBuzzIn}
+            onClick={() => setShowBuzzIn((open) => !open)}
+          >
+            BuzzIn
+          </button>
           <FinalJeopardyRainbowWrap>
             <button
               type="button"
@@ -285,15 +329,17 @@ export function GamePage() {
         </div>
       </header>
 
-      <div className="game-board-wrap">
-        <GameBoardGrid
-          board={board}
-          usedClueIds={usedIds}
-          onTileClick={(categoryId, clue) => {
-            setRevealed({ categoryId, clueId: clue.id });
-            setShowAnswer(false);
-          }}
-        />
+      <div className="game-main">
+        <div className="game-board-wrap">
+          <GameBoardGrid
+            board={board}
+            usedClueIds={usedIds}
+            onTileClick={(categoryId, clue) => {
+              setRevealed({ categoryId, clueId: clue.id });
+              setShowAnswer(false);
+            }}
+          />
+        </div>
       </div>
 
       <TeamScoreDock
@@ -403,6 +449,24 @@ export function GamePage() {
           onUpdateSession={setSession}
         />
       )}
+
+      <BuzzInClueToggle
+        visible={clueOverlayOpen}
+        showBuzzIn={showBuzzIn}
+        onToggle={() => setShowBuzzIn((open) => !open)}
+      />
+
+      <aside
+        className={`game-buzzin-dock${showBuzzIn ? '' : ' game-buzzin-dock-hidden'}${clueOverlayOpen ? ' game-buzzin-dock-over-clue' : ''}${clueOverlayOpen && showBuzzIn ? ' game-buzzin-dock-ghost' : ''}${buzzInPulse ? ' game-buzzin-dock-pulse' : ''}`}
+        aria-hidden={!showBuzzIn}
+      >
+        <BuzzInIntegration
+          compact
+          overlayMode={clueOverlayOpen}
+          ghostOverlay={clueOverlayOpen && showBuzzIn}
+          onBuzz={handleBuzzInBuzz}
+        />
+      </aside>
     </div>
   );
 }
