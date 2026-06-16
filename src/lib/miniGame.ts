@@ -195,6 +195,8 @@ export function migrateBoard(raw: Board): Board {
   const migrated: Board = {
     ...raw,
     datasets: raw.datasets ?? [],
+    wheels: raw.wheels ?? [],
+    defaultPlayerNames: raw.defaultPlayerNames,
     finalJeopardy: migrateFinalJeopardy(raw.finalJeopardy),
     categories: raw.categories.map((cat) => ({
       ...cat,

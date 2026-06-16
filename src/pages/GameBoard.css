@@ -18,7 +18,7 @@
   opacity: var(--board-bg-overlay-opacity, 0);
 }
 
-.board-themed.game-screen > *:not(.clue-overlay):not(.game-buzzin-dock):not(.buzzin-clue-toggle),
+.board-themed.game-screen > *:not(.clue-overlay):not(.game-buzzin-dock):not(.buzzin-clue-toggle):not(.wheel-clue-toggle),
 .board-themed.preview-screen > *:not(.clue-overlay) {
   position: relative;
   z-index: 1;

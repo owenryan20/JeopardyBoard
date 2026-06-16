@@ -105,6 +105,7 @@ export interface CropRevealMiniGameConfig {
 export type MiniGameConfig = CharacterGuessMiniGameConfig | CropRevealMiniGameConfig;
 
 import type { DatasetKind, DatasetSourceMetadata } from './dataset';
+import type { WheelOfNames } from './wheel';
 
 export interface BoardDataset {
   id: string;
@@ -208,6 +209,10 @@ export interface Board {
   theme?: BoardTheme;
   /** Optional thumbnail on dashboard board cards. Falls back to themed mini board. */
   previewImage?: BoardPreviewImage;
+  /** Saved Wheel of Names lists for this board. */
+  wheels?: WheelOfNames[];
+  /** @deprecated Ignored; team names are edited during play only. */
+  defaultPlayerNames?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -270,6 +275,8 @@ export interface GameSession {
   miniGameProgress: Record<string, MiniGameProgress>;
   cropRevealProgress: Record<string, CropRevealRuntimeState>;
   attachmentRevealIndex: Record<string, number>;
+  /** @deprecated Migrated into board.wheels on load; no longer written. */
+  runtimeWheels?: WheelOfNames[];
 }
 
 export const DEFAULT_POINT_VALUES = [100, 200, 300, 400, 500];

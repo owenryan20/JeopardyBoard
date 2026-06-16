@@ -64,4 +64,57 @@ describe('import roundtrip fields', () => {
     expect(board.categories[0].clues[0].attachments).toHaveLength(1);
     expect(board.categories[0].clues[0].attachmentDisplayMode).toBe('progressive');
   });
+
+  it('preserves wheels and tolerates missing wheels on old boards', () => {
+    const withWheels = migrateBoard({
+      id: 'b2',
+      title: 'Wheel board',
+      description: '',
+      datasets: [],
+      categories: [
+        {
+          id: 'cat1',
+          name: 'Cat',
+          clues: [
+            {
+              id: 'cl1',
+              type: 'clue' as const,
+              value: 100,
+              clue: 'Q',
+              answer: 'A',
+              hostNotes: '',
+              isDailyDouble: false,
+              tags: [],
+              isUsed: false,
+            },
+          ],
+        },
+      ],
+      finalJeopardy: {
+        category: '',
+        tile: {
+          id: 'fj',
+          type: 'clue' as const,
+          value: 0,
+          clue: '',
+          answer: '',
+          hostNotes: '',
+          isDailyDouble: false,
+          tags: [],
+          isUsed: false,
+        },
+      },
+      wheels: [{ id: 'w1', name: 'Picker', entries: ['Alice', 'Bob'] }],
+      createdAt: '2020-01-01',
+      updatedAt: '2020-01-01',
+    } satisfies Board);
+
+    expect(withWheels.wheels).toEqual([{ id: 'w1', name: 'Picker', entries: ['Alice', 'Bob'] }]);
+
+    const withoutWheels = migrateBoard({
+      ...withWheels,
+      wheels: undefined,
+    });
+    expect(withoutWheels.wheels).toEqual([]);
+  });
 });
