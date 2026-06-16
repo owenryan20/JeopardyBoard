@@ -4,12 +4,13 @@ import { createId } from './ids';
 
 const DEFAULT_TEAM_NAMES = ['Alpha', 'Bravo', 'Charlie'];
 
-export function createDefaultTeams(count = 3): Team[] {
+export function createDefaultTeams(count = 3, names?: string[]): Team[] {
+  const source = names && names.length > 0 ? names : DEFAULT_TEAM_NAMES;
   return Array.from({ length: count }, (_, i) =>
     migrateTeam(
       {
         id: createId(),
-        name: DEFAULT_TEAM_NAMES[i] ?? `Team ${i + 1}`,
+        name: source[i] ?? `Team ${i + 1}`,
         score: 0,
       },
       i,
@@ -17,10 +18,12 @@ export function createDefaultTeams(count = 3): Team[] {
   );
 }
 
-export function createDefaultSession(boardId: string): GameSession {
+export function createDefaultSession(boardId: string, teamNames?: string[]): GameSession {
+  const names = teamNames && teamNames.length > 0 ? teamNames : undefined;
+  const teamCount = Math.max(2, names?.length ?? 3);
   return {
     boardId,
-    teams: createDefaultTeams(),
+    teams: createDefaultTeams(teamCount, names),
     revealedClueId: null,
     showAnswer: false,
     finalJeopardyRevealed: 'none',
@@ -29,6 +32,7 @@ export function createDefaultSession(boardId: string): GameSession {
     miniGameProgress: {},
     cropRevealProgress: {},
     attachmentRevealIndex: {},
+    runtimeWheels: [],
   };
 }
 
@@ -42,6 +46,7 @@ export function normalizeGameSession(raw: GameSession): GameSession {
     miniGameProgress: raw.miniGameProgress ?? {},
     cropRevealProgress: raw.cropRevealProgress ?? {},
     attachmentRevealIndex: raw.attachmentRevealIndex ?? {},
+    runtimeWheels: raw.runtimeWheels ?? [],
     teams: raw.teams.map((t, i) => migrateTeam(t, i)),
   };
 }

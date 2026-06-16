@@ -1,0 +1,41 @@
+.buzzin-clue-toggle {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: calc(var(--z-clue-overlay) + 25);
+  padding: 0.4rem 0.75rem;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  background: rgba(19, 34, 56, 0.82);
+  color: #fbbf24;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.buzzin-clue-toggle:hover {
+  background: rgba(19, 34, 56, 0.95);
+  border-color: rgba(251, 191, 36, 0.7);
+}
+
+.buzzin-clue-toggle-active {
+  background: rgba(251, 191, 36, 0.18);
+  color: #fff;
+}
+
+.buzzin-clue-toggle-active:hover {
+  background: rgba(251, 191, 36, 0.28);
+}
+
+@media (max-width: 900px) {
+  .buzzin-clue-toggle {
+    top: auto;
+    bottom: 150px;
+    right: 8px;
+  }
+}

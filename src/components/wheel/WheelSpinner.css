@@ -1,0 +1,49 @@
+.wheel-spinner-wrap {
+  position: relative;
+  width: min(56vh, 72vw, 720px);
+  margin: 0 auto;
+}
+
+.wheel-spinner-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-top: 32px solid #fbbf24;
+  z-index: 2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
+}
+
+.wheel-spinner-rotor {
+  transition: none;
+}
+
+.wheel-spinner-rotor-spinning {
+  transition: transform 4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.wheel-spinner-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 50%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+
+.wheel-spinner-label {
+  fill: #fff;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.wheel-spinner-empty {
+  margin: 1rem 0;
+  text-align: center;
+  color: var(--color-text-muted, #64748b);
+  font-style: italic;
+  font-size: 1.1rem;
+}

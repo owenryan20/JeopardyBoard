@@ -21,6 +21,7 @@ import { exportBoardZip, exportBoardZipBackup } from '../../lib/boardZip';
 import { importBoardFromFile, pickBoardImportFile } from '../../lib/boardImport';
 import { importBoard } from '../../hooks/useBoards';
 import { BoardAppearanceModal } from './BoardAppearanceModal';
+import { WheelOfNamesEditor } from '../wheel/WheelOfNamesEditor';
 import './InspectorPanel.css';
 
 interface InspectorPanelProps {
@@ -259,6 +260,13 @@ export function InspectorPanel({
           ))}
         </div>
       </section>
+
+      {onBoardChange && (
+        <WheelOfNamesEditor
+          board={board}
+          onBoardChange={(next) => onBoardChange(next)}
+        />
+      )}
 
       {onBoardChange && (
         <section className="inspector-section card">

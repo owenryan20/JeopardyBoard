@@ -18,7 +18,7 @@
   opacity: var(--board-bg-overlay-opacity, 0);
 }
 
-.board-themed.game-screen > *:not(.clue-overlay),
+.board-themed.game-screen > *:not(.clue-overlay):not(.game-buzzin-dock):not(.buzzin-clue-toggle):not(.wheel-clue-toggle),
 .board-themed.preview-screen > *:not(.clue-overlay) {
   position: relative;
   z-index: 1;
@@ -116,6 +116,80 @@
   background: rgba(255, 255, 255, 0.15);
 }
 
+.game-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.game-buzzin-dock {
+  position: fixed;
+  top: 72px;
+  right: 12px;
+  bottom: 168px;
+  z-index: calc(var(--z-clue-overlay) + 20);
+  width: min(300px, calc(100vw - 24px));
+  overflow-y: auto;
+  overflow-x: hidden;
+  transition: transform 0.22s ease, opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.game-buzzin-dock-hidden {
+  transform: translateX(calc(100% + 20px));
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.game-buzzin-dock-over-clue {
+  top: 12px;
+  bottom: auto;
+  max-height: min(48vh, 400px);
+  width: min(260px, calc(100vw - 24px));
+}
+
+.game-buzzin-dock-over-clue:not(.game-buzzin-dock-hidden) {
+  top: 48px;
+  max-height: min(44vh, 360px);
+}
+
+.game-buzzin-dock-ghost {
+  opacity: 0.92;
+}
+
+.game-buzzin-dock-pulse {
+  animation: buzzin-dock-pulse 0.7s ease;
+}
+
+@keyframes buzzin-dock-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(251, 191, 36, 0);
+  }
+  100% {
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .game-buzzin-dock {
+    top: auto;
+    right: 8px;
+    left: 8px;
+    bottom: 150px;
+    width: auto;
+    max-height: min(36vh, 300px);
+  }
+
+  .game-buzzin-dock-over-clue {
+    bottom: auto;
+    top: 8px;
+    max-height: min(32vh, 260px);
+  }
+}
+
 .game-board-wrap {
   flex: 1;
   display: flex;
@@ -123,6 +197,7 @@
   justify-content: center;
   padding: 24px;
   overflow: auto;
+  min-width: 0;
 }
 
 .game-board {

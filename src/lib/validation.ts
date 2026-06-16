@@ -73,6 +73,18 @@ function normalizeImportedBoard(raw: Board): Board {
     })),
     finalJeopardy: migrateFinalJeopardy(raw.finalJeopardy),
     theme: raw.theme,
+    wheels: Array.isArray(raw.wheels)
+      ? raw.wheels.map((wheel) => ({
+          id: wheel.id || crypto.randomUUID(),
+          name: typeof wheel.name === 'string' ? wheel.name : 'Wheel',
+          entries: Array.isArray(wheel.entries)
+            ? wheel.entries.filter((entry): entry is string => typeof entry === 'string')
+            : [],
+        }))
+      : [],
+    defaultPlayerNames: Array.isArray(raw.defaultPlayerNames)
+      ? raw.defaultPlayerNames.filter((name): name is string => typeof name === 'string')
+      : undefined,
     createdAt: raw.createdAt ?? now,
     updatedAt: now,
   };
