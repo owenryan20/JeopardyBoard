@@ -16,6 +16,8 @@ import {
   searchDatasetRows,
 } from '../../lib/miniGame';
 import { TeamScoreQuickActions } from '../game/TeamScoreQuickActions';
+import { ClueTimer } from '../game/ClueTimer';
+import { getClueTimerSeconds } from '../../lib/clueTimer';
 import './CharacterGuessPanel.css';
 
 interface CharacterGuessPanelProps {
@@ -162,6 +164,7 @@ export function CharacterGuessPanel({
       : undefined;
 
   const answerName = answerRow?.[nameField] ?? '';
+  const timerSeconds = mode === 'game' ? getClueTimerSeconds(clue) : undefined;
 
   if (!dataset) {
     return (
@@ -184,6 +187,7 @@ export function CharacterGuessPanel({
         </div>
         <h2 className="cg-title">{config.title}</h2>
         <p className="cg-subtitle">Character Guess · {guessesLeft} of {guessLimit} guesses left</p>
+        {timerSeconds && <ClueTimer clueId={clue.id} durationSeconds={timerSeconds} />}
       </div>
 
       <div className="cg-body">

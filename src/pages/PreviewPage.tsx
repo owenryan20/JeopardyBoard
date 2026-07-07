@@ -3,14 +3,16 @@ import type { CSSProperties } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { CharacterGuessPanel } from '../components/minigame/CharacterGuessPanel';
 import { CropRevealPanel } from '../components/minigame/CropRevealPanel';
-import { ClueAttachments } from '../components/clue/ClueAttachments';
+import { ClueAttachments, attachmentCount } from '../components/clue/ClueAttachments';
 import { ClueAnswerMedia } from '../components/clue/ClueAnswerMedia';
 import { TeamScoreQuickActions } from '../components/game/TeamScoreQuickActions';
+import { ClueTimer } from '../components/game/ClueTimer';
 import type { Board, Clue } from '../types/board';
 import { isCharacterGuessTile, isCropRevealTile } from '../types/board';
 import { formatPeso } from '../lib/currency';
+import { getClueTimerSeconds } from '../lib/clueTimer';
 import { findClue } from '../lib/boardFactory';
-import { hasAttachments } from '../lib/attachments';
+import { hasAttachments, isStepwiseAttachmentMode, normalizeAttachmentDisplayMode } from '../lib/attachments';
 import { getCategoryHeaderStyle } from '../lib/boardTheme';
 import { useBoardThemeStyles } from '../hooks/useBoardTheme';
 import { getBoard } from '../lib/storage';
@@ -23,6 +25,7 @@ export function PreviewPage() {
   const [board, setBoard] = useState<Board | null>(() => (id ? getBoard(id) ?? null : null));
   const [revealed, setRevealed] = useState<{ categoryId: string; clueId: string } | null>(null);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [attachmentRevealIndex, setAttachmentRevealIndex] = useState(0);
 
   useEffect(() => {
     if (!id) return;
@@ -86,6 +89,7 @@ export function PreviewPage() {
           onTileClick={(categoryId, clue) => {
             setRevealed({ categoryId, clueId: clue.id });
             setShowAnswer(false);
+            setAttachmentRevealIndex(0);
           }}
         />
       </div>
@@ -130,9 +134,14 @@ export function PreviewPage() {
           clue={activeClue.clue}
           showAnswer={showAnswer}
           preview
+          attachmentRevealIndex={attachmentRevealIndex}
+          onRevealNextAttachment={() => setAttachmentRevealIndex((index) => index + 1)}
+          onRevealPreviousAttachment={() => setAttachmentRevealIndex((index) => Math.max(0, index - 1))}
+          onResetAttachments={() => setAttachmentRevealIndex(0)}
           onClose={() => {
             setRevealed(null);
             setShowAnswer(false);
+            setAttachmentRevealIndex(0);
           }}
           onShowAnswer={() => setShowAnswer(true)}
         />
@@ -208,6 +217,8 @@ export function ClueOverlay({
   teamScoreSelections = {},
   attachmentRevealIndex = 0,
   onRevealNextAttachment,
+  onRevealPreviousAttachment,
+  onResetAttachments,
   enlargeImages = false,
 }: {
   categoryName: string;
@@ -223,10 +234,20 @@ export function ClueOverlay({
   teamScoreSelections?: Record<string, 'add' | 'subtract'>;
   attachmentRevealIndex?: number;
   onRevealNextAttachment?: () => void;
+  onRevealPreviousAttachment?: () => void;
+  onResetAttachments?: () => void;
   enlargeImages?: boolean;
 }) {
   const value = clueValue ?? clue.value;
   const showAttachments = hasAttachments(clue);
+  const attachmentMode = normalizeAttachmentDisplayMode(clue.attachmentDisplayMode);
+  const showAttachmentReset =
+    showAttachments
+    && attachmentCount(clue) > 1
+    && isStepwiseAttachmentMode(attachmentMode)
+    && attachmentRevealIndex > 0
+    && Boolean(onResetAttachments);
+  const timerSeconds = !preview ? getClueTimerSeconds(clue) : undefined;
 
   return (
     <div className="clue-overlay" role="dialog" aria-modal="true" aria-labelledby="clue-overlay-title">
@@ -234,6 +255,7 @@ export function ClueOverlay({
         <p className="clue-overlay-category">{categoryName}</p>
         <p className="clue-overlay-value game-value">{formatPeso(value)}</p>
         {clue.isDailyDouble && <span className="badge badge-dd">Daily Double</span>}
+        {timerSeconds && <ClueTimer clueId={clue.id} durationSeconds={timerSeconds} />}
         <h2 id="clue-overlay-title" className="clue-overlay-text">
           {clue.clue || '(No clue text)'}
         </h2>
@@ -242,6 +264,7 @@ export function ClueOverlay({
             clue={clue}
             revealIndex={attachmentRevealIndex}
             onRevealNext={onRevealNextAttachment}
+            onRevealPrevious={onRevealPreviousAttachment}
             showProgress
             enlargeImages={enlargeImages}
           />
@@ -255,6 +278,11 @@ export function ClueOverlay({
           </>
         )}
         <div className="clue-overlay-actions">
+          {showAttachmentReset && (
+            <button type="button" className="btn" onClick={onResetAttachments}>
+              Reset question
+            </button>
+          )}
           {!showAnswer && (
             <button type="button" className="btn btn-primary" onClick={onShowAnswer}>
               Show Answer

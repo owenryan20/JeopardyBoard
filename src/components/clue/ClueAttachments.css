@@ -12,14 +12,94 @@
   max-width: 100%;
 }
 
-.clue-attachments-all {
+.clue-attachments-all,
+.clue-attachments-progressive {
+  width: 100%;
+}
+
+.clue-attachments-layout-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.clue-attachments-layout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr));
+  gap: 1rem;
+  align-items: start;
+  justify-items: center;
+}
+
+.clue-attachments-layout-row {
+  display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.clue-attachments-layout-row .attachment-reveal-block {
+  flex: 1 1 min(260px, 100%);
+  max-width: min(100%, 520px);
+}
+
+.clue-attachments-layout-split {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+  justify-items: center;
+}
+
+.clue-attachments-layout-grid .attachment-reveal-block,
+.clue-attachments-layout-row .attachment-reveal-block,
+.clue-attachments-layout-split .attachment-reveal-block {
+  min-width: 0;
+  width: 100%;
+}
+
+.clue-attachments-layout-grid .clue-overlay-media img,
+.clue-attachments-layout-grid .clue-overlay-media video,
+.clue-attachments-layout-row .clue-overlay-media img,
+.clue-attachments-layout-row .clue-overlay-media video,
+.clue-attachments-layout-split .clue-overlay-media img,
+.clue-attachments-layout-split .clue-overlay-media video {
+  max-height: min(38vh, 420px);
+}
+
+.attachment-reveal-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: 100%;
+  align-items: center;
+}
+
+.attachment-clue-text {
+  margin: 0;
+  width: 100%;
+  max-width: min(100%, 1100px);
+  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
+  line-height: 1.45;
+  color: #fff;
+  text-align: center;
 }
 
 .attachment-progress {
   font-size: 0.875rem;
   color: var(--text-muted, #94a3b8);
   margin: 0;
+  grid-column: 1 / -1;
+  width: 100%;
+  text-align: center;
+}
+
+.clue-attachments-progressive .attachment-reveal-next {
+  grid-column: 1 / -1;
+  justify-self: center;
 }
 
 .attachment-reveal-next {
@@ -27,6 +107,19 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.attachment-reveal-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.clue-attachments-single .attachment-reveal-controls {
+  margin-top: 0.25rem;
 }
 
 .attachment-figure {
@@ -70,4 +163,14 @@
 
 .attachment-text p {
   margin: 0.35rem 0 0;
+}
+
+@media (max-width: 720px) {
+  .clue-attachments-layout-split {
+    grid-template-columns: 1fr;
+  }
+
+  .clue-attachments-layout-row .attachment-reveal-block {
+    max-width: 100%;
+  }
 }

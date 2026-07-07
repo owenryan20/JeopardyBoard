@@ -1,12 +1,6 @@
 import type { Board, Clue, Media, MediaType } from '../types/board';
 import { collectAllLocalMediaIds } from './attachments';
 
-export const MEDIA_SIZE_LIMITS: Record<MediaType, number> = {
-  image: 5 * 1024 * 1024,
-  audio: 15 * 1024 * 1024,
-  video: 50 * 1024 * 1024,
-};
-
 const IMAGE_MIMES = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml']);
 const AUDIO_MIMES = new Set(['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/mp4', 'audio/x-m4a', 'audio/aac']);
 const VIDEO_MIMES = new Set(['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime']);
@@ -34,11 +28,6 @@ export function validateMediaFile(file: File, expectedType?: MediaType): string 
   }
   if (expectedType && type !== expectedType) {
     return `Expected ${expectedType} but got ${type}. Change media type or pick another file.`;
-  }
-  const limit = MEDIA_SIZE_LIMITS[type];
-  if (file.size > limit) {
-    const mb = Math.round(limit / (1024 * 1024));
-    return `File is too large. Max ${mb} MB for ${type}.`;
   }
   return null;
 }
