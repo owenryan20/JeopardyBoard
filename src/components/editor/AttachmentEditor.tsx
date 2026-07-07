@@ -2,7 +2,7 @@ import { useRef, useState } from 'react';
 
 import { ChevronDown, ChevronUp, Link2, Plus, Trash2, Upload } from 'lucide-react';
 
-import type { AttachmentDisplayMode, TileAttachment, TileAttachmentType } from '../../types/board';
+import type { AttachmentDisplayMode, AttachmentLayout, TileAttachment, TileAttachmentType } from '../../types/board';
 
 import { createId } from '../../lib/ids';
 
@@ -18,7 +18,12 @@ import {
 
 } from '../../lib/mediaUtils';
 
-import { normalizeAttachment, reorderAttachments, isMediaAttachmentType } from '../../lib/attachments';
+import {
+  ATTACHMENT_LAYOUT_OPTIONS,
+  normalizeAttachment,
+  reorderAttachments,
+  isMediaAttachmentType,
+} from '../../lib/attachments';
 
 import { confirmDialog } from '../../lib/dialog';
 
@@ -130,9 +135,15 @@ interface AttachmentEditorProps {
 
   displayMode: AttachmentDisplayMode;
 
+  layout: AttachmentLayout;
+
   attachmentAutoplay?: boolean;
 
-  onChange: (attachments: TileAttachment[], displayMode: AttachmentDisplayMode) => void;
+  onChange: (
+    attachments: TileAttachment[],
+    displayMode: AttachmentDisplayMode,
+    layout: AttachmentLayout,
+  ) => void;
 
   onAttachmentAutoplayChange?: (autoplay: boolean) => void;
 
@@ -143,6 +154,7 @@ interface AttachmentEditorProps {
 export function AttachmentEditor({
   attachments,
   displayMode,
+  layout,
   attachmentAutoplay = false,
   onChange,
   onAttachmentAutoplayChange,
@@ -162,18 +174,21 @@ export function AttachmentEditor({
 
   const dragDepthRef = useRef(0);
 
+  const emitChange = (
+    nextAttachments: TileAttachment[],
+    nextDisplayMode: AttachmentDisplayMode = displayMode,
+    nextLayout: AttachmentLayout = layout,
+  ) => {
+    onChange(nextAttachments, nextDisplayMode, nextLayout);
+  };
+
+  const activeLayoutHint =
+    ATTACHMENT_LAYOUT_OPTIONS.find((option) => option.value === layout)?.hint ?? '';
+
 
 
   const updateAttachment = (id: string, partial: Partial<TileAttachment>) => {
-
-    onChange(
-
-      attachments.map((a) => (a.id === id ? { ...a, ...partial } : a)),
-
-      displayMode,
-
-    );
-
+    emitChange(attachments.map((a) => (a.id === id ? { ...a, ...partial } : a)));
   };
 
 
@@ -194,7 +209,7 @@ export function AttachmentEditor({
 
     };
 
-    onChange([...attachments, att], displayMode);
+    emitChange([...attachments, att]);
 
   };
 
@@ -232,7 +247,7 @@ export function AttachmentEditor({
 
     }
 
-    onChange(attachments.filter((a) => a.id !== id), displayMode);
+    emitChange(attachments.filter((a) => a.id !== id));
 
   };
 
@@ -244,7 +259,7 @@ export function AttachmentEditor({
 
     if (target < 0 || target >= attachments.length) return;
 
-    onChange(reorderAttachments(attachments, index, target), displayMode);
+    emitChange(reorderAttachments(attachments, index, target));
 
   };
 
@@ -350,7 +365,7 @@ export function AttachmentEditor({
 
     if (added.length > 0) {
 
-      onChange([...attachments, ...added], displayMode);
+      emitChange([...attachments, ...added]);
 
     }
 
@@ -418,7 +433,7 @@ export function AttachmentEditor({
 
             checked={displayMode === 'all-at-once'}
 
-            onChange={() => onChange(attachments, 'all-at-once')}
+            onChange={() => emitChange(attachments, 'all-at-once')}
 
           />
 
@@ -436,17 +451,63 @@ export function AttachmentEditor({
 
             checked={displayMode === 'progressive'}
 
-            onChange={() => onChange(attachments, 'progressive')}
+            onChange={() => emitChange(attachments, 'progressive')}
 
           />
 
-          One by one
+          One by one (build up)
 
         </label>
 
+        <label className="radio-label">
+
+          <input
+
+            type="radio"
+
+            name="attachment-display-mode"
+
+            checked={displayMode === 'single'}
+
+            onChange={() => emitChange(attachments, 'single')}
+
+          />
+
+          One at a time
+
+        </label>
+
+        {(displayMode === 'progressive' || displayMode === 'single') && (
+          <p className="field-hint attachment-display-hint">
+            {displayMode === 'progressive'
+              ? 'Each attachment is added as you reveal; earlier attachments stay visible.'
+              : 'Only one attachment is shown at a time — use Previous and Next during the game.'}
+            {' '}
+            Optional clue text on each attachment is revealed together with that attachment.
+          </p>
+        )}
+
       </div>
 
-
+      <div className="attachment-layout-mode">
+        <span className="attachment-display-mode-label">Layout</span>
+        {ATTACHMENT_LAYOUT_OPTIONS.map((option) => (
+          <label key={option.value} className="radio-label">
+            <input
+              type="radio"
+              name="attachment-layout"
+              checked={layout === option.value}
+              onChange={() => emitChange(attachments, displayMode, option.value)}
+            />
+            {option.label}
+          </label>
+        ))}
+        <p className="field-hint attachment-layout-hint">
+          {attachments.length < 2
+            ? 'Layout applies when this clue has multiple attachments.'
+            : activeLayoutHint}
+        </p>
+      </div>
 
       <label className="attachment-autoplay-toggle toggle-row">
 
@@ -895,6 +956,20 @@ export function AttachmentEditor({
                   </details>
 
                 )}
+
+                <div className="attachment-clue-field">
+                  <label className="label attachment-clue-label" htmlFor={`attachment-clue-${att.id}`}>
+                    Clue for this attachment
+                  </label>
+                  <textarea
+                    id={`attachment-clue-${att.id}`}
+                    className="textarea attachment-clue-input"
+                    rows={2}
+                    placeholder="Shown with this attachment during play"
+                    value={att.clue ?? ''}
+                    onChange={(e) => updateAttachment(att.id, { clue: e.target.value })}
+                  />
+                </div>
 
               </li>
 

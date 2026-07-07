@@ -154,6 +154,36 @@ export function GamePage() {
     });
   };
 
+  const revealPreviousAttachment = () => {
+    if (!revealed) return;
+    setSession((s) => {
+      if (!s) return s;
+      const current = s.attachmentRevealIndex[revealed.clueId] ?? 0;
+      if (current <= 0) return s;
+      return {
+        ...s,
+        attachmentRevealIndex: {
+          ...s.attachmentRevealIndex,
+          [revealed.clueId]: current - 1,
+        },
+      };
+    });
+  };
+
+  const resetAttachments = () => {
+    if (!revealed) return;
+    setSession((s) => {
+      if (!s) return s;
+      return {
+        ...s,
+        attachmentRevealIndex: {
+          ...s.attachmentRevealIndex,
+          [revealed.clueId]: 0,
+        },
+      };
+    });
+  };
+
   const markClueUsed = () => {
     if (!revealed) return;
     const updated: Board = {
@@ -452,6 +482,8 @@ export function GamePage() {
           }
           attachmentRevealIndex={attachmentRevealIndex}
           onRevealNextAttachment={revealNextAttachment}
+          onRevealPreviousAttachment={revealPreviousAttachment}
+          onResetAttachments={resetAttachments}
           onClose={closeOverlay}
           onShowAnswer={() => setShowAnswer(true)}
           onMarkUsed={markClueUsed}

@@ -27,9 +27,14 @@ export interface TileAttachment {
   alt?: string;
   thumbnailUrl?: string;
   textContent?: string;
+  /** Optional clue text revealed with this attachment during play. */
+  clue?: string;
 }
 
-export type AttachmentDisplayMode = 'all-at-once' | 'progressive';
+export type AttachmentDisplayMode = 'all-at-once' | 'progressive' | 'single';
+
+/** How multiple attachments are arranged when shown together in game. */
+export type AttachmentLayout = 'stack' | 'grid' | 'row' | 'split';
 
 export type TileType = 'clue' | 'miniGame';
 
@@ -179,8 +184,12 @@ export interface Clue {
   answerMedia?: Media;
   attachments?: TileAttachment[];
   attachmentDisplayMode?: AttachmentDisplayMode;
+  /** Layout for multiple attachments during play (stack, grid, row, split). */
+  attachmentLayout?: AttachmentLayout;
   /** When true, audio and video attachments autoplay when shown in game. */
   attachmentAutoplay?: boolean;
+  /** Optional countdown in seconds for this question during play (host-controlled). */
+  timerSeconds?: number;
   tags: string[];
   isUsed: boolean;
   miniGame?: MiniGameConfig;

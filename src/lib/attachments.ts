@@ -1,5 +1,6 @@
 import type {
   AttachmentDisplayMode,
+  AttachmentLayout,
   Board,
   Clue,
   Media,
@@ -10,6 +11,48 @@ import { createId } from './ids';
 import { hasClueMedia, isLocalMedia, normalizeMedia } from './mediaUtils';
 
 export const DEFAULT_ATTACHMENT_DISPLAY_MODE: AttachmentDisplayMode = 'all-at-once';
+export const DEFAULT_ATTACHMENT_LAYOUT: AttachmentLayout = 'stack';
+
+export const ATTACHMENT_LAYOUT_OPTIONS: {
+  value: AttachmentLayout;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: 'stack',
+    label: 'Vertical stack',
+    hint: 'Attachments appear one below another.',
+  },
+  {
+    value: 'grid',
+    label: 'Grid',
+    hint: 'Responsive grid — good for several images of similar size.',
+  },
+  {
+    value: 'row',
+    label: 'Horizontal row',
+    hint: 'Side-by-side in a row, wrapping on smaller screens.',
+  },
+  {
+    value: 'split',
+    label: 'Side by side',
+    hint: 'Two equal columns — ideal for comparing a pair.',
+  },
+];
+
+export function normalizeAttachmentLayout(value: unknown): AttachmentLayout {
+  if (value === 'grid' || value === 'row' || value === 'split') return value;
+  return 'stack';
+}
+
+export function normalizeAttachmentDisplayMode(value: unknown): AttachmentDisplayMode {
+  if (value === 'progressive' || value === 'single') return value;
+  return 'all-at-once';
+}
+
+export function isStepwiseAttachmentMode(mode: AttachmentDisplayMode): boolean {
+  return mode === 'progressive' || mode === 'single';
+}
 
 export function isMediaAttachmentType(type: TileAttachmentType): boolean {
   return type === 'image' || type === 'audio' || type === 'video';
@@ -41,7 +84,8 @@ export function migrateClueAttachments(clue: Clue): Clue {
   return {
     ...rest,
     attachments,
-    attachmentDisplayMode: clue.attachmentDisplayMode ?? DEFAULT_ATTACHMENT_DISPLAY_MODE,
+    attachmentDisplayMode: normalizeAttachmentDisplayMode(clue.attachmentDisplayMode),
+    attachmentLayout: normalizeAttachmentLayout(clue.attachmentLayout),
     media: attachments.length > 0 ? undefined : mediaForSaveLegacy(clue.media),
   };
 }
@@ -69,6 +113,7 @@ export function normalizeAttachment(raw: Partial<TileAttachment>): TileAttachmen
     alt: raw.alt,
     thumbnailUrl: raw.thumbnailUrl,
     textContent: raw.textContent,
+    clue: raw.clue?.trim() || undefined,
   };
 }
 

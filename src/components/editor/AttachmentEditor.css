@@ -30,6 +30,41 @@
   color: var(--text-muted, #94a3b8);
 }
 
+.attachment-display-hint {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
+.attachment-clue-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.5rem;
+}
+
+.attachment-clue-label {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.attachment-clue-input {
+  min-height: 3.5rem;
+  resize: vertical;
+}
+
+.attachment-layout-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0.65rem 0 0;
+}
+
+.attachment-layout-hint {
+  flex: 1 1 100%;
+  margin: 0;
+}
+
 .attachment-autoplay-toggle {
   margin: 0.65rem 0 0.75rem;
   padding: 0;

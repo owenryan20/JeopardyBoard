@@ -21,11 +21,11 @@
   --game-bg: #0a1628;
   --game-gold: #fbbf24;
   --game-panel: #132238;
-  --scrollbar-size: 10px;
-  --scrollbar-track: rgba(15, 23, 42, 0.1);
-  --scrollbar-thumb: rgba(100, 116, 139, 0.45);
-  --scrollbar-thumb-hover: rgba(71, 85, 105, 0.7);
-  --scrollbar-thumb-active: rgba(29, 78, 216, 0.75);
+  --scrollbar-size: 8px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(100, 116, 139, 0.35);
+  --scrollbar-thumb-hover: rgba(71, 85, 105, 0.55);
+  --scrollbar-thumb-active: rgba(29, 78, 216, 0.65);
   /* Stacking order (low → high) */
   --z-dropdown: 50;
   --z-editor-overlay: 90;
@@ -239,6 +239,7 @@ a {
   max-width: 480px;
   max-height: 90vh;
   overflow: auto;
+  scrollbar-gutter: stable;
 }
 
 .modal-header {
@@ -412,14 +413,14 @@ a {
 
 *::-webkit-scrollbar-track {
   background: var(--scrollbar-track);
-  border-radius: 999px;
 }
 
 *::-webkit-scrollbar-thumb {
   background-color: var(--scrollbar-thumb);
   border-radius: 999px;
   border: 2px solid transparent;
-  background-clip: padding-box;
+  background-clip: content-box;
+  min-height: 40px;
 }
 
 *::-webkit-scrollbar-thumb:hover {
@@ -431,20 +432,36 @@ a {
 }
 
 *::-webkit-scrollbar-corner {
-  background: var(--scrollbar-track);
+  background: transparent;
 }
 
-/* Dark surfaces: game board, clue overlays, modals */
+/* Light app surfaces: editor, modals, inspector */
+.modal,
+.modal-body,
+.inspector,
+.editor-main,
+.app-main,
+.clue-editor,
+.minigame-editor,
+.dataset-modal,
+.board-appearance-modal {
+  --scrollbar-size: 7px;
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(148, 163, 184, 0.45);
+  --scrollbar-thumb-hover: rgba(100, 116, 139, 0.7);
+  --scrollbar-thumb-active: rgba(29, 78, 216, 0.7);
+}
+
+/* Dark surfaces: game board, clue overlays */
 .board-themed,
 .clue-overlay,
 .clue-overlay-panel,
 .cg-panel-game,
 .cr-panel-game,
-.game-screen,
-.modal,
-.modal-body {
-  --scrollbar-track: rgba(0, 0, 0, 0.45);
-  --scrollbar-thumb: rgba(148, 163, 184, 0.38);
+.game-screen {
+  --scrollbar-size: 8px;
+  --scrollbar-track: rgba(0, 0, 0, 0.2);
+  --scrollbar-thumb: rgba(148, 163, 184, 0.35);
   --scrollbar-thumb-hover: rgba(251, 191, 36, 0.55);
   --scrollbar-thumb-active: rgba(251, 191, 36, 0.75);
 }

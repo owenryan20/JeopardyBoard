@@ -11,6 +11,8 @@ import {
 } from '../../lib/gameSession';
 import { getCorrectAnswerName } from '../../lib/miniGame';
 import { hasAttachments } from '../../lib/attachments';
+import { getClueTimerSeconds } from '../../lib/clueTimer';
+import { ClueTimer } from './ClueTimer';
 import './FinalJeopardyOverlay.css';
 
 interface FinalJeopardyOverlayProps {
@@ -34,6 +36,29 @@ export function FinalJeopardyOverlay({
   const wagers = session.finalJeopardyWagers;
   const outcomes = session.finalJeopardyOutcomes;
   const miniGameProgress = session.miniGameProgress[tile.id];
+  const clueTimerSeconds = getClueTimerSeconds(tile);
+  const attachmentRevealIndex = session.attachmentRevealIndex[tile.id] ?? 0;
+
+  const revealNextAttachment = () => {
+    onUpdateSession({
+      ...session,
+      attachmentRevealIndex: {
+        ...session.attachmentRevealIndex,
+        [tile.id]: attachmentRevealIndex + 1,
+      },
+    });
+  };
+
+  const revealPreviousAttachment = () => {
+    if (attachmentRevealIndex <= 0) return;
+    onUpdateSession({
+      ...session,
+      attachmentRevealIndex: {
+        ...session.attachmentRevealIndex,
+        [tile.id]: attachmentRevealIndex - 1,
+      },
+    });
+  };
 
   const setPhase = (finalJeopardyRevealed: GameSession['finalJeopardyRevealed']) => {
     onUpdateSession({ ...session, finalJeopardyRevealed });
@@ -148,6 +173,9 @@ export function FinalJeopardyOverlay({
         {phase === 'clue' && (
           <>
             <p className="clue-overlay-category">{fj.category}</p>
+            {clueTimerSeconds && !isCharacterGuess && !isCropReveal && (
+              <ClueTimer clueId={tile.id} durationSeconds={clueTimerSeconds} />
+            )}
             {isCharacterGuess ? (
               <div className="final-minigame-wrap">
                 <CharacterGuessPanel
@@ -182,7 +210,14 @@ export function FinalJeopardyOverlay({
               <>
                 <p className="clue-overlay-text">{tile.clue || '(No clue set)'}</p>
                 {hasAttachments(tile) && (
-                  <ClueAttachments clue={tile} showProgress enlargeImages />
+                  <ClueAttachments
+                    clue={tile}
+                    revealIndex={attachmentRevealIndex}
+                    onRevealNext={revealNextAttachment}
+                    onRevealPrevious={revealPreviousAttachment}
+                    showProgress
+                    enlargeImages
+                  />
                 )}
               </>
             )}
@@ -206,7 +241,14 @@ export function FinalJeopardyOverlay({
               <>
                 <p className="clue-overlay-text">{tile.clue}</p>
                 {hasAttachments(tile) && (
-                  <ClueAttachments clue={tile} showProgress enlargeImages />
+                  <ClueAttachments
+                    clue={tile}
+                    revealIndex={attachmentRevealIndex}
+                    onRevealNext={revealNextAttachment}
+                    onRevealPrevious={revealPreviousAttachment}
+                    showProgress
+                    enlargeImages
+                  />
                 )}
               </>
             )}

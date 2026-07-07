@@ -1,10 +1,11 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import type { AttachmentDisplayMode, Clue, TileAttachment } from '../../types/board';
 import {
   attachmentsForSave,
   DEFAULT_ATTACHMENT_DISPLAY_MODE,
+  DEFAULT_ATTACHMENT_LAYOUT,
 } from '../../lib/attachments';
+import type { AttachmentDisplayMode, AttachmentLayout, Clue, TileAttachment } from '../../types/board';
 import { canResetTile } from '../../lib/boardFactory';
 import { confirmDialog } from '../../lib/dialog';
 import { answerMediaForSave } from '../../lib/mediaUtils';
@@ -59,6 +60,7 @@ export function ClueEditor({
     answerMedia: answerMediaForSave(next.answerMedia),
     attachments: attachmentsForSave(next.attachments),
     attachmentDisplayMode: next.attachmentDisplayMode ?? DEFAULT_ATTACHMENT_DISPLAY_MODE,
+    attachmentLayout: next.attachmentLayout ?? DEFAULT_ATTACHMENT_LAYOUT,
     media: undefined,
   });
 
@@ -72,11 +74,13 @@ export function ClueEditor({
   const handleAttachmentsChange = (
     attachments: TileAttachment[],
     displayMode: AttachmentDisplayMode,
+    attachmentLayout: AttachmentLayout,
   ) => {
     setDraft((prev) => ({
       ...prev,
       attachments,
       attachmentDisplayMode: displayMode,
+      attachmentLayout,
     }));
   };
 
@@ -184,6 +188,34 @@ export function ClueEditor({
           </div>
           )}
 
+          <div className="field">
+            <label className="label" htmlFor="clue-timer">
+              Question timer (seconds)
+            </label>
+            <input
+              id="clue-timer"
+              className="input"
+              type="number"
+              min={0}
+              max={5999}
+              step={1}
+              placeholder="0 = no timer"
+              value={draft.timerSeconds ?? ''}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                if (!raw) {
+                  update('timerSeconds', undefined);
+                  return;
+                }
+                const parsed = Number.parseInt(raw, 10);
+                update('timerSeconds', parsed > 0 ? parsed : undefined);
+              }}
+            />
+            <p className="field-hint">
+              Optional countdown during play. The host can pause or reset it; the answer is not revealed automatically.
+            </p>
+          </div>
+
           {!isFinal && (
           <div className="field toggle-row">
             <div>
@@ -240,6 +272,7 @@ export function ClueEditor({
           <AttachmentEditor
             attachments={draft.attachments ?? []}
             displayMode={draft.attachmentDisplayMode ?? DEFAULT_ATTACHMENT_DISPLAY_MODE}
+            layout={draft.attachmentLayout ?? DEFAULT_ATTACHMENT_LAYOUT}
             attachmentAutoplay={draft.attachmentAutoplay ?? false}
             onChange={handleAttachmentsChange}
             onAttachmentAutoplayChange={(attachmentAutoplay) => update('attachmentAutoplay', attachmentAutoplay)}

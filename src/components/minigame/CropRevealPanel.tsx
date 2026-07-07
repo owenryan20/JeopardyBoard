@@ -13,6 +13,8 @@ import { confirmDialog } from '../../lib/dialog';
 import { normalizeAttachment } from '../../lib/attachments';
 import { CropRevealViewport } from './CropRevealViewport';
 import { TeamScoreQuickActions } from '../game/TeamScoreQuickActions';
+import { ClueTimer } from '../game/ClueTimer';
+import { getClueTimerSeconds } from '../../lib/clueTimer';
 import './CropRevealPanel.css';
 
 interface CropRevealPanelProps {
@@ -103,6 +105,7 @@ export function CropRevealPanel({
     progress.status === 'correct' && config.showFullImageOnComplete
       ? 100
       : progress.currentRevealPercent;
+  const timerSeconds = mode === 'game' ? getClueTimerSeconds(clue) : undefined;
 
   const submitGuess = () => {
     if (finished || awaitingMaxAttemptsChoice || !guess.trim()) return;
@@ -200,6 +203,7 @@ export function CropRevealPanel({
         <p className="cr-subtitle">
           Reveal level {Math.round(revealPercent)}% · {progress.attempts} attempt{progress.attempts !== 1 ? 's' : ''}
         </p>
+        {timerSeconds && <ClueTimer clueId={clue.id} durationSeconds={timerSeconds} />}
       </div>
 
       <CropRevealViewport
