@@ -19,7 +19,8 @@ import { CropRevealEditor } from '../components/minigame/CropRevealEditor';
 import { TileTypePicker } from '../components/editor/TileTypePicker';
 import { InspectorPanel } from '../components/editor/InspectorPanel';
 import { FinalJeopardyRainbowWrap } from '../components/game/FinalJeopardyRainbowWrap';
-import { findClue, getNextClue, addCategory, removeCategory, addClueToCategory, removeClueFromCategory, canResetTile, isTileEmpty, resetClueTile } from '../lib/boardFactory';
+import { findClue, getNextClue, addCategory, removeCategory, addClueToCategory, removeClueFromCategory, canResetTile, isTileEmpty, resetClueTile, relocateTile, moveTileToCategoryEnd } from '../lib/boardFactory';
+import type { TileDropMode, TilePosition } from '../lib/boardFactory';
 import { FINAL_JEOPARDY_TILE_ID } from '../lib/finalJeopardy';
 import { BoardTile } from '../components/editor/BoardTile';
 import { alertDialog, confirmDialog } from '../lib/dialog';
@@ -403,6 +404,14 @@ export function BoardEditorPage() {
     }
   };
 
+  const handleRelocateTile = (from: TilePosition, to: TilePosition, mode: TileDropMode) => {
+    updateBoard((b) => relocateTile(b, from, to, mode) ?? b);
+  };
+
+  const handleMoveTileToCategoryEnd = (from: TilePosition, targetCategoryId: string) => {
+    updateBoard((b) => moveTileToCategoryEnd(b, from, targetCategoryId) ?? b);
+  };
+
   const handleDelete = async () => {
     const ok = await confirmDialog({
       title: `Delete "${board.title}"?`,
@@ -555,6 +564,8 @@ export function BoardEditorPage() {
             onRemoveCategory={handleRemoveCategory}
             onAddClue={handleAddClue}
             onRemoveClue={handleRemoveClue}
+            onRelocateTile={handleRelocateTile}
+            onMoveTileToCategoryEnd={handleMoveTileToCategoryEnd}
           />
 
           <section className="final-jeopardy-editor card">

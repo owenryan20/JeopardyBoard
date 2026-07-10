@@ -257,4 +257,112 @@ export function removeClueFromCategory(
   };
 }
 
+export type TileDropMode = 'swap' | 'insert-before' | 'insert-after';
+
+export interface TilePosition {
+  categoryId: string;
+  clueId: string;
+}
+
+function findTileIndex(
+  board: Board,
+  categoryId: string,
+  clueId: string,
+): { categoryIndex: number; clueIndex: number } | null {
+  const categoryIndex = board.categories.findIndex((c) => c.id === categoryId);
+  if (categoryIndex < 0) return null;
+  const clueIndex = board.categories[categoryIndex]!.clues.findIndex((c) => c.id === clueId);
+  if (clueIndex < 0) return null;
+  return { categoryIndex, clueIndex };
+}
+
+/** Swap two tiles in place (same or different categories). */
+export function swapTiles(board: Board, from: TilePosition, to: TilePosition): Board | null {
+  if (from.categoryId === to.categoryId && from.clueId === to.clueId) return board;
+
+  const a = findTileIndex(board, from.categoryId, from.clueId);
+  const b = findTileIndex(board, to.categoryId, to.clueId);
+  if (!a || !b) return null;
+
+  const categories = board.categories.map((cat) => ({ ...cat, clues: [...cat.clues] }));
+  const clueA = categories[a.categoryIndex]!.clues[a.clueIndex]!;
+  const clueB = categories[b.categoryIndex]!.clues[b.clueIndex]!;
+  categories[a.categoryIndex]!.clues[a.clueIndex] = clueB;
+  categories[b.categoryIndex]!.clues[b.clueIndex] = clueA;
+  return { ...board, categories };
+}
+
+/**
+ * Move a tile by inserting before/after a target (shift), or swap when overlapping.
+ * Cross-category inserts require the source to stay above the minimum tile count
+ * and the target category to stay at or below the maximum.
+ */
+export function relocateTile(
+  board: Board,
+  from: TilePosition,
+  to: TilePosition,
+  mode: TileDropMode,
+): Board | null {
+  if (from.categoryId === to.categoryId && from.clueId === to.clueId) return board;
+
+  if (mode === 'swap') {
+    return swapTiles(board, from, to);
+  }
+
+  const source = findTileIndex(board, from.categoryId, from.clueId);
+  const target = findTileIndex(board, to.categoryId, to.clueId);
+  if (!source || !target) return null;
+
+  const categories = board.categories.map((cat) => ({ ...cat, clues: [...cat.clues] }));
+  const sourceCat = categories[source.categoryIndex]!;
+  const targetCat = categories[target.categoryIndex]!;
+  const [moved] = sourceCat.clues.splice(source.clueIndex, 1);
+  if (!moved) return null;
+
+  let insertIndex = mode === 'insert-before' ? target.clueIndex : target.clueIndex + 1;
+
+  if (source.categoryIndex === target.categoryIndex) {
+    if (source.clueIndex < insertIndex) insertIndex -= 1;
+    sourceCat.clues.splice(insertIndex, 0, moved);
+    return { ...board, categories };
+  }
+
+  // Cross-category: source already lost one tile; target will gain one.
+  if (sourceCat.clues.length < MIN_CLUES_PER_CATEGORY) return null;
+  if (targetCat.clues.length >= MAX_CLUES_PER_CATEGORY) return null;
+
+  insertIndex = mode === 'insert-before' ? target.clueIndex : target.clueIndex + 1;
+  targetCat.clues.splice(insertIndex, 0, moved);
+  return { ...board, categories };
+}
+
+/** Append a tile to the end of a category (shift into empty space at column bottom). */
+export function moveTileToCategoryEnd(
+  board: Board,
+  from: TilePosition,
+  targetCategoryId: string,
+): Board | null {
+  const source = findTileIndex(board, from.categoryId, from.clueId);
+  const targetCategoryIndex = board.categories.findIndex((c) => c.id === targetCategoryId);
+  if (!source || targetCategoryIndex < 0) return null;
+
+  if (from.categoryId === targetCategoryId) {
+    const cat = board.categories[source.categoryIndex]!;
+    if (source.clueIndex === cat.clues.length - 1) return board;
+    const last = cat.clues[cat.clues.length - 1]!;
+    return relocateTile(board, from, { categoryId: targetCategoryId, clueId: last.id }, 'insert-after');
+  }
+
+  const categories = board.categories.map((cat) => ({ ...cat, clues: [...cat.clues] }));
+  const sourceCat = categories[source.categoryIndex]!;
+  const targetCat = categories[targetCategoryIndex]!;
+  if (sourceCat.clues.length <= MIN_CLUES_PER_CATEGORY) return null;
+  if (targetCat.clues.length >= MAX_CLUES_PER_CATEGORY) return null;
+
+  const [moved] = sourceCat.clues.splice(source.clueIndex, 1);
+  if (!moved) return null;
+  targetCat.clues.push(moved);
+  return { ...board, categories };
+}
+
 export { migrateBoard };
