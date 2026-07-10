@@ -1,4 +1,5 @@
 import { Check, Gamepad2, Image, Music2, Play } from 'lucide-react';
+import type { DragEventHandler } from 'react';
 import type { Board, Clue } from '../../types/board';
 import { isMiniGameTile } from '../../types/board';
 import { clueStatus, isTileEmpty } from '../../lib/boardFactory';
@@ -14,6 +15,9 @@ interface BoardTileProps {
   compact?: boolean;
   onSelect: () => void;
   onEdit?: () => void;
+  draggable?: boolean;
+  onDragStart?: DragEventHandler<HTMLButtonElement>;
+  onDragEnd?: DragEventHandler<HTMLButtonElement>;
 }
 
 export function BoardTile({
@@ -24,6 +28,9 @@ export function BoardTile({
   compact = false,
   onSelect,
   onEdit,
+  draggable = false,
+  onDragStart,
+  onDragEnd,
 }: BoardTileProps) {
   const isMini = isMiniGameTile(clue);
   const status = clueStatus(clue, board);
@@ -34,9 +41,12 @@ export function BoardTile({
   return (
     <button
       type="button"
-      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}${isMini ? ' clue-tile-minigame' : ''}${compact ? ' clue-tile-compact' : ''}`}
+      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}${isMini ? ' clue-tile-minigame' : ''}${compact ? ' clue-tile-compact' : ''}${draggable ? ' clue-tile-draggable' : ''}`}
       role="gridcell"
       aria-pressed={selected}
+      draggable={draggable}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
       aria-label={
         isMini
           ? `${showValue && clue.value ? `${clue.value} point ` : ''}mini game, Character Guess${isComplete ? ', ready' : ''}`
