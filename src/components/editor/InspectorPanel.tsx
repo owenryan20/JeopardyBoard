@@ -291,6 +291,7 @@ export function InspectorPanel({
               ? board.categories.find((c) => c.id === selectedCategoryId) ?? null
               : null
           }
+          selectedClue={selected?.clue ?? null}
           onBoardChange={onBoardChange}
           onClose={() => setAppearanceOpen(false)}
         />

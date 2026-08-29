@@ -9,6 +9,7 @@ import type {
 } from '../types/board';
 import { isCharacterGuessConfig, isCropRevealConfig, isMiniGameTile } from '../types/board';
 import { migrateClueAttachments } from './attachments';
+import { migrateClueStyle } from './boardTheme';
 import { normalizeTimerSeconds } from './clueTimer';
 import { migrateBoardWithTheme } from './boardTheme';
 import { createDefaultCropRevealConfig, validateCropRevealConfig } from './cropReveal';
@@ -292,6 +293,7 @@ function migrateClue(clue: Partial<Clue> & { id: string; value: number }): Clue 
     attachmentLayout: clue.attachmentLayout,
     attachmentAutoplay: Boolean(clue.attachmentAutoplay),
     timerSeconds: normalizeTimerSeconds(clue.timerSeconds),
+    style: migrateClueStyle(clue.style),
     miniGame: type === 'miniGame' ? migrateMiniGameConfig(clue.miniGame, clue.value) : clue.miniGame,
   };
   return migrateClueAttachments(base);

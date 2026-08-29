@@ -242,6 +242,14 @@
   line-height: 1;
 }
 
+.clue-tile-custom-color .clue-tile-value {
+  color: var(--tile-point, var(--color-primary));
+}
+
+.clue-tile-custom-color.clue-tile-minigame {
+  background: var(--tile-bg);
+}
+
 .clue-tile-add {
   font-size: 11px;
   color: var(--color-text-muted);

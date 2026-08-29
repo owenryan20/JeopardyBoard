@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-import { ChevronDown, ChevronUp, Link2, Plus, Trash2, Upload } from 'lucide-react';
+import { ChevronDown, ChevronUp, Link2, Plus, Scissors, Trash2, Upload } from 'lucide-react';
 
 import type { AttachmentDisplayMode, AttachmentLayout, TileAttachment, TileAttachmentType } from '../../types/board';
 
@@ -28,6 +28,8 @@ import {
 import { confirmDialog } from '../../lib/dialog';
 
 import { TileAttachmentView } from '../clue/TileAttachmentView';
+
+import { AudioTrimModal } from './AudioTrimModal';
 
 import './AttachmentEditor.css';
 
@@ -172,6 +174,8 @@ export function AttachmentEditor({
 
   const [urlExpanded, setUrlExpanded] = useState<Record<string, boolean>>({});
 
+  const [trimAttachmentId, setTrimAttachmentId] = useState<string | null>(null);
+
   const dragDepthRef = useRef(0);
 
   const emitChange = (
@@ -310,6 +314,10 @@ export function AttachmentEditor({
       url: '',
 
       type: att?.type === 'file' ? inferred : att?.type ?? inferred,
+
+      audioStartSec: undefined,
+
+      audioEndSec: undefined,
 
     });
 
@@ -739,7 +747,39 @@ export function AttachmentEditor({
 
                 {isMedia && normalized && (
 
-                  <TileAttachmentView attachment={normalized} className="attachment-editor-preview" />
+                  <TileAttachmentView
+                    attachment={normalized}
+                    className="attachment-editor-preview"
+                    onVolumeChange={
+                      att.type === 'audio'
+                        ? (volume) => updateAttachment(att.id, { volume })
+                        : undefined
+                    }
+                  />
+
+                )}
+
+                {att.type === 'audio' && normalized && (
+
+                  <div className="attachment-audio-actions">
+
+                    <button
+
+                      type="button"
+
+                      className="btn btn-sm"
+
+                      onClick={() => setTrimAttachmentId(att.id)}
+
+                    >
+
+                      <Scissors size={14} aria-hidden="true" />
+
+                      Trim
+
+                    </button>
+
+                  </div>
 
                 )}
 
@@ -988,6 +1028,25 @@ export function AttachmentEditor({
         Uploads stay in this browser. Export ZIP to move boards with media.
 
       </p>
+
+      {trimAttachmentId && (() => {
+        const trimAtt = attachments.find((a) => a.id === trimAttachmentId);
+        if (!trimAtt || trimAtt.type !== 'audio') return null;
+        return (
+          <AudioTrimModal
+            attachment={trimAtt}
+            onCancel={() => setTrimAttachmentId(null)}
+            onSave={(clip) => {
+              updateAttachment(trimAtt.id, {
+                audioStartSec: clip.audioStartSec,
+                audioEndSec: clip.audioEndSec,
+                volume: clip.volume,
+              });
+              setTrimAttachmentId(null);
+            }}
+          />
+        );
+      })()}
 
     </section>
 

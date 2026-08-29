@@ -13,7 +13,7 @@ import { formatPeso } from '../lib/currency';
 import { getClueTimerSeconds } from '../lib/clueTimer';
 import { findClue } from '../lib/boardFactory';
 import { hasAttachments, isStepwiseAttachmentMode, normalizeAttachmentDisplayMode } from '../lib/attachments';
-import { getCategoryHeaderStyle } from '../lib/boardTheme';
+import { getCategoryHeaderStyle, getClueTileStyle } from '../lib/boardTheme';
 import { useBoardThemeStyles } from '../hooks/useBoardTheme';
 import { getBoard } from '../lib/storage';
 import './GameBoard.css';
@@ -154,13 +154,24 @@ export function GameBoardGrid({
   board,
   onTileClick,
   usedClueIds,
+  selectedClueId,
+  selectedClueIds,
 }: {
   board: Board;
   onTileClick: (categoryId: string, clue: Clue) => void;
   usedClueIds?: Set<string>;
+  selectedClueId?: string | null;
+  /** When set, highlights every id in the set (row/column multi-select). */
+  selectedClueIds?: ReadonlySet<string> | string[] | null;
 }) {
   const themeStyles = useBoardThemeStyles(board);
   const gridStyle = { '--board-cols': board.categories.length, ...themeStyles } as CSSProperties;
+  const multiSelected =
+    selectedClueIds == null
+      ? null
+      : selectedClueIds instanceof Set
+        ? selectedClueIds
+        : new Set(selectedClueIds);
 
   return (
     <div className="game-board game-board-columns board-themed" style={gridStyle} role="grid" aria-label="Game board">
@@ -182,14 +193,26 @@ export function GameBoardGrid({
           </div>
           {cat.clues.map((clue) => {
             const used = usedClueIds?.has(clue.id) ?? clue.isUsed;
+            const selected = multiSelected
+              ? multiSelected.has(clue.id)
+              : selectedClueId === clue.id;
+            const tileStyle = getClueTileStyle(clue, board);
+            const colorStyle = !used && tileStyle.hasOverride
+              ? ({
+                  background: tileStyle.tileBackground,
+                  '--board-point-text': tileStyle.pointValueText,
+                } as CSSProperties)
+              : undefined;
             return (
               <button
                 key={clue.id}
                 type="button"
-                className={`game-tile${used ? ' game-tile-used' : ''}`}
+                className={`game-tile${used ? ' game-tile-used' : ''}${!used && tileStyle.hasOverride ? ' game-tile-custom-color' : ''}${selected ? ' game-tile-selected' : ''}`}
                 role="gridcell"
                 disabled={used}
-                aria-label={`${cat.name}, ${clue.value} points${used ? ', already used' : ''}`}
+                aria-pressed={selected}
+                style={colorStyle}
+                aria-label={`${cat.name}, ${clue.value} points${used ? ', already used' : ''}${selected ? ', selected' : ''}`}
                 onClick={() => !used && onTileClick(cat.id, clue)}
               >
                 {!used && <span className="game-value">{clue.value}</span>}

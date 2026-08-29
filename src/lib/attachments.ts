@@ -9,6 +9,7 @@ import type {
 } from '../types/board';
 import { createId } from './ids';
 import { hasClueMedia, isLocalMedia, normalizeMedia } from './mediaUtils';
+import { normalizeAudioClipBound, normalizeAudioVolume } from './audioClip';
 
 export const DEFAULT_ATTACHMENT_DISPLAY_MODE: AttachmentDisplayMode = 'all-at-once';
 export const DEFAULT_ATTACHMENT_LAYOUT: AttachmentLayout = 'stack';
@@ -102,6 +103,12 @@ export function normalizeAttachment(raw: Partial<TileAttachment>): TileAttachmen
   const url = raw.url?.trim();
   if (!hasLocal && !url && type !== 'text' && type !== 'link') return null;
 
+  const clip =
+    type === 'audio'
+      ? normalizeAudioClipBound(raw.audioStartSec, raw.audioEndSec)
+      : {};
+  const volume = type === 'audio' ? normalizeAudioVolume(raw.volume) : undefined;
+
   return {
     id: raw.id ?? createId(),
     type,
@@ -114,6 +121,8 @@ export function normalizeAttachment(raw: Partial<TileAttachment>): TileAttachmen
     thumbnailUrl: raw.thumbnailUrl,
     textContent: raw.textContent,
     clue: raw.clue?.trim() || undefined,
+    ...clip,
+    volume,
   };
 }
 

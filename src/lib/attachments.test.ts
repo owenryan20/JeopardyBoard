@@ -31,6 +31,45 @@ describe('normalizeAttachment', () => {
     });
     expect(att?.clue).toBe('What is this?');
   });
+
+  it('preserves audio clip bounds and volume', () => {
+    const att = normalizeAttachment({
+      id: 'a2',
+      type: 'audio',
+      title: '',
+      url: 'https://example.com/x.mp3',
+      audioStartSec: 1.5,
+      audioEndSec: 4.2,
+      volume: 0.4,
+    });
+    expect(att?.audioStartSec).toBe(1.5);
+    expect(att?.audioEndSec).toBe(4.2);
+    expect(att?.volume).toBe(0.4);
+  });
+
+  it('omits default full volume and ignores clip on non-audio', () => {
+    const audio = normalizeAttachment({
+      id: 'a3',
+      type: 'audio',
+      title: '',
+      url: 'https://example.com/x.mp3',
+      volume: 1,
+    });
+    expect(audio?.volume).toBeUndefined();
+
+    const image = normalizeAttachment({
+      id: 'a4',
+      type: 'image',
+      title: '',
+      url: 'https://example.com/x.png',
+      audioStartSec: 1,
+      audioEndSec: 2,
+      volume: 0.5,
+    });
+    expect(image?.audioStartSec).toBeUndefined();
+    expect(image?.audioEndSec).toBeUndefined();
+    expect(image?.volume).toBeUndefined();
+  });
 });
 
 describe('migrateClueAttachments', () => {

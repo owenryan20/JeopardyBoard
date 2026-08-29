@@ -1,8 +1,9 @@
 import { Check, Gamepad2, Image, Music2, Play } from 'lucide-react';
-import type { DragEventHandler } from 'react';
+import type { CSSProperties, DragEventHandler } from 'react';
 import type { Board, Clue } from '../../types/board';
 import { isMiniGameTile } from '../../types/board';
 import { clueStatus, isTileEmpty } from '../../lib/boardFactory';
+import { getClueTileStyle } from '../../lib/boardTheme';
 import { getMiniGameReadiness } from '../../lib/miniGame';
 import { hasAttachments } from '../../lib/attachments';
 import { hasClueMedia } from '../../lib/mediaUtils';
@@ -37,16 +38,25 @@ export function BoardTile({
   const isComplete = status === 'complete';
   const isEmpty = isTileEmpty(clue, board);
   const mgReadiness = isMini ? getMiniGameReadiness(board, clue) : null;
+  const tileStyle = getClueTileStyle(clue, board);
+  const colorStyle = tileStyle.hasOverride
+    ? ({
+        '--tile-bg': tileStyle.tileBackground,
+        '--tile-point': tileStyle.pointValueText,
+        background: tileStyle.tileBackground,
+      } as CSSProperties)
+    : undefined;
 
   return (
     <button
       type="button"
-      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}${isMini ? ' clue-tile-minigame' : ''}${compact ? ' clue-tile-compact' : ''}${draggable ? ' clue-tile-draggable' : ''}`}
+      className={`clue-tile${selected ? ' clue-tile-selected' : ''}${isEmpty ? ' clue-tile-empty' : ''}${isMini ? ' clue-tile-minigame' : ''}${compact ? ' clue-tile-compact' : ''}${draggable ? ' clue-tile-draggable' : ''}${tileStyle.hasOverride ? ' clue-tile-custom-color' : ''}`}
       role="gridcell"
       aria-pressed={selected}
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
+      style={colorStyle}
       aria-label={
         isMini
           ? `${showValue && clue.value ? `${clue.value} point ` : ''}mini game, Character Guess${isComplete ? ', ready' : ''}`

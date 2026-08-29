@@ -29,6 +29,12 @@ export interface TileAttachment {
   textContent?: string;
   /** Optional clue text revealed with this attachment during play. */
   clue?: string;
+  /** Audio clip start in seconds (inclusive). */
+  audioStartSec?: number;
+  /** Audio clip end in seconds (exclusive of silence after). */
+  audioEndSec?: number;
+  /** Playback volume 0–1. Defaults to 1 when unset. */
+  volume?: number;
 }
 
 export type AttachmentDisplayMode = 'all-at-once' | 'progressive' | 'single';
@@ -170,6 +176,12 @@ export interface CategoryHeaderStyle {
   headerBackgroundImage?: string;
 }
 
+/** Optional per-tile appearance overrides (row/column paint writes these onto clues). */
+export interface ClueStyle {
+  tileBackground?: string;
+  pointValueText?: string;
+}
+
 export interface Clue {
   id: string;
   type: TileType;
@@ -190,6 +202,8 @@ export interface Clue {
   attachmentAutoplay?: boolean;
   /** Optional countdown in seconds for this question during play (host-controlled). */
   timerSeconds?: number;
+  /** Optional tile fill / point-value color overrides. */
+  style?: ClueStyle;
   tags: string[];
   isUsed: boolean;
   miniGame?: MiniGameConfig;
