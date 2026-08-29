@@ -45,6 +45,16 @@
   background: var(--board-tile-bg-hover, #1a3050);
 }
 
+.board-themed .game-tile-custom-color:hover:not(:disabled):not(.game-tile-used) {
+  filter: brightness(1.08);
+}
+
+.board-themed .game-tile-selected:not(.game-tile-used) {
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.85);
+  outline: 2px solid #fbbf24;
+  outline-offset: -2px;
+}
+
 .board-themed .game-top-bar {
   background: var(--board-top-bar-bg, var(--game-panel));
 }

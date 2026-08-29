@@ -1,0 +1,113 @@
+.color-picker {
+  position: relative;
+  margin: 0.35rem 0;
+}
+
+.color-picker .color-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.8125rem;
+  margin: 0;
+}
+
+.color-field-label {
+  min-width: 0;
+}
+
+.color-picker-trigger {
+  width: 36px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--color-border, rgba(15, 23, 42, 0.2));
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+}
+
+.color-picker-trigger:hover,
+.color-picker-trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.color-picker-panel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 5;
+  width: min(240px, calc(100vw - 48px));
+  padding: 0.65rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm, 8px);
+  background: var(--color-surface, #fff);
+  box-shadow: var(--shadow-lg, 0 10px 30px rgba(15, 23, 42, 0.18));
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.color-picker-custom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.color-picker-custom input[type='color'] {
+  width: 42px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.color-swatch-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.color-swatch-label {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.color-swatch-empty {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.color-swatch-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
+}
+
+.color-swatch:hover,
+.color-swatch:focus-visible,
+.color-swatch-selected {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}

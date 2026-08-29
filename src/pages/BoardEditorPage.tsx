@@ -639,7 +639,7 @@ export function BoardEditorPage() {
           onSelectClue={handlePickStandardClue}
           onSelectCharacterGuess={() => void handlePickCharacterGuess()}
           onSelectCropReveal={() => void handlePickCropReveal()}
-          onCancel={closeEditor}
+          onCancel={() => setEditorMode('none')}
         />
       )}
 

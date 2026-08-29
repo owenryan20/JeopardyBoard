@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Palette, X } from 'lucide-react';
-import type { Board, Category } from '../../types/board';
+import type { Board, Category, Clue } from '../../types/board';
+import { clueIdsInColumn, clueIdsInRow } from '../../lib/boardTheme';
 import { useBoardThemeStyles } from '../../hooks/useBoardTheme';
 import { GameBoardGrid } from '../../pages/PreviewPage';
-import { BoardAppearanceEditor } from './BoardAppearanceEditor';
+import { BoardAppearanceEditor, type TilePaintSelectionScope } from './BoardAppearanceEditor';
 import '../../pages/GameBoard.css';
 import './BoardAppearanceModal.css';
 
@@ -17,23 +18,50 @@ function cloneBoard(board: Board): Board {
 interface BoardAppearanceModalProps {
   board: Board;
   selectedCategory?: Category | null;
+  selectedClue?: Clue | null;
   onBoardChange: (update: BoardUpdater) => void;
   onClose: () => void;
 }
 
 export function BoardAppearanceModal({
   board,
-  selectedCategory,
+  selectedCategory: initialCategory = null,
+  selectedClue: initialClue = null,
   onBoardChange,
   onClose,
 }: BoardAppearanceModalProps) {
   const [draftBoard, setDraftBoard] = useState<Board>(() => cloneBoard(board));
+  const [paintCategoryId, setPaintCategoryId] = useState<string | null>(
+    () => initialCategory?.id ?? null,
+  );
+  const [paintClueId, setPaintClueId] = useState<string | null>(() => initialClue?.id ?? null);
+  const [selectionScope, setSelectionScope] = useState<TilePaintSelectionScope>('tile');
   const themeStyles = useBoardThemeStyles(draftBoard);
 
-  const previewUsedClueIds = useMemo(() => {
-    const firstClueId = draftBoard.categories[0]?.clues[0]?.id;
-    return firstClueId ? new Set([firstClueId]) : undefined;
-  }, [draftBoard.categories]);
+  const paintCategory =
+    paintCategoryId
+      ? draftBoard.categories.find((c) => c.id === paintCategoryId) ?? null
+      : null;
+  const paintClue =
+    paintCategory && paintClueId
+      ? paintCategory.clues.find((c) => c.id === paintClueId) ?? null
+      : null;
+
+  const rowIndex =
+    paintCategory && paintClue
+      ? paintCategory.clues.findIndex((c) => c.id === paintClue.id)
+      : -1;
+
+  const selectedClueIds = useMemo(() => {
+    if (!paintCategoryId || !paintClueId) return new Set<string>();
+    if (selectionScope === 'row' && rowIndex >= 0) {
+      return new Set(clueIdsInRow(draftBoard, rowIndex));
+    }
+    if (selectionScope === 'column') {
+      return new Set(clueIdsInColumn(draftBoard, paintCategoryId));
+    }
+    return new Set([paintClueId]);
+  }, [draftBoard, paintCategoryId, paintClueId, rowIndex, selectionScope]);
 
   const updateDraftBoard = useCallback((update: BoardUpdater) => {
     setDraftBoard((current) => (typeof update === 'function' ? update(current) : update));
@@ -78,7 +106,7 @@ export function BoardAppearanceModal({
             <div>
               <h2 id="board-appearance-title">Board Appearance</h2>
               <p className="board-appearance-subtitle">
-                Preview changes here. Click Save to apply them to this board, or Cancel to discard.
+                Preview changes here. Select a tile, expand to a row or column, then apply a color. Save to keep.
               </p>
             </div>
           </div>
@@ -95,13 +123,17 @@ export function BoardAppearanceModal({
           >
             <header className="game-top-bar board-appearance-preview-top-bar">
               <span className="board-appearance-preview-title">{draftBoard.title || 'Untitled board'}</span>
-              <span className="board-appearance-preview-label">Live preview</span>
+              <span className="board-appearance-preview-label">Live preview — click a tile to select</span>
             </header>
             <div className="board-appearance-preview-board">
               <GameBoardGrid
                 board={draftBoard}
-                onTileClick={() => {}}
-                usedClueIds={previewUsedClueIds}
+                selectedClueIds={selectedClueIds}
+                onTileClick={(categoryId, clue) => {
+                  setPaintCategoryId(categoryId);
+                  setPaintClueId(clue.id);
+                  setSelectionScope('tile');
+                }}
               />
             </div>
             <footer className="team-dock board-appearance-preview-footer" aria-hidden="true">
@@ -113,7 +145,11 @@ export function BoardAppearanceModal({
             <BoardAppearanceEditor
               embedded
               board={draftBoard}
-              selectedCategory={selectedCategory}
+              selectedCategory={paintCategory}
+              selectedClue={paintClue}
+              selectionScope={selectionScope}
+              selectedClueIds={[...selectedClueIds]}
+              onSelectionScopeChange={setSelectionScope}
               onBoardChange={updateDraftBoard}
               onApplyCategoryStyleToAll={(style) =>
                 updateDraftBoard((current) => ({

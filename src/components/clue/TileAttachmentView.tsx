@@ -11,6 +11,10 @@ interface TileAttachmentViewProps {
   enlargeable?: boolean;
   /** When true, audio and video start playing once loaded and visible. */
   autoplay?: boolean;
+  /** Persist volume changes from the audio player (editor). */
+  onVolumeChange?: (volume: number) => void;
+  /** Show volume controls on audio (default true). */
+  showVolume?: boolean;
 }
 
 export function TileAttachmentView({
@@ -18,6 +22,8 @@ export function TileAttachmentView({
   className = 'clue-overlay-media',
   enlargeable = false,
   autoplay = false,
+  onVolumeChange,
+  showVolume = true,
 }: TileAttachmentViewProps) {
   const [src, setSrc] = useState<string | null>(null);
   const [missing, setMissing] = useState(false);
@@ -126,7 +132,16 @@ export function TileAttachmentView({
           title={displayTitle || undefined}
         />
       ) : (
-        <AudioAttachmentPlayer src={src} title={displayTitle ?? ''} autoplay={autoplay} />
+        <AudioAttachmentPlayer
+          src={src}
+          title={displayTitle ?? ''}
+          autoplay={autoplay}
+          startSec={attachment.audioStartSec}
+          endSec={attachment.audioEndSec}
+          volume={attachment.volume}
+          onVolumeChange={onVolumeChange}
+          showVolume={showVolume}
+        />
       )}
       {enlargeable && attachment.type === 'image' && (
         <ImageEnlargeOverlay

@@ -1,20 +1,26 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import type { Board, BoardBackground, BoardColorTheme, BoardPreviewImage, BoardTheme, Category } from '../../types/board';
+import type { Board, BoardBackground, BoardColorTheme, BoardPreviewImage, BoardTheme, Category, Clue } from '../../types/board';
 import {
-  createDefaultBoardTheme,
+  applyTileColorsToClueIds,
+  clearAllTileColors,
   DEFAULT_BOARD_COLORS,
   DEFAULT_SOLID_BACKGROUND_COLOR,
+  getClueTileStyle,
   migrateBoardTheme,
+  resetAllBoardColors,
 } from '../../lib/boardTheme';
 import { getMediaBlob, isMediaStorageAvailable, saveMediaFile } from '../../lib/mediaStorage';
 import { backgroundToCss } from '../../lib/boardTheme';
 import { validateMediaFile } from '../../lib/mediaUtils';
 import { clonePresetTheme, type BoardThemePreset } from '../../lib/themePresets';
 import { ThemePresetPicker } from './ThemePresetPicker';
+import { ColorPicker } from './ColorPicker';
 import { BoardCardPreview } from '../dashboard/BoardCardPreview';
 import './BoardAppearanceEditor.css';
 
 type BoardUpdater = Board | ((board: Board) => Board);
+
+export type TilePaintSelectionScope = 'tile' | 'row' | 'column';
 
 type ImageBoardBackground = Extract<BoardBackground, { type: 'image' }>;
 
@@ -31,6 +37,10 @@ function initialStashedSolidColor(board: Board): string {
 interface BoardAppearanceEditorProps {
   board: Board;
   selectedCategory?: Category | null;
+  selectedClue?: Clue | null;
+  selectionScope?: TilePaintSelectionScope;
+  selectedClueIds?: string[];
+  onSelectionScopeChange?: (scope: TilePaintSelectionScope) => void;
   onBoardChange: (update: BoardUpdater) => void;
   onApplyCategoryStyleToAll?: (style: Category['style']) => void;
   /** When true, omits header and redundant mini-previews (for modal layout). */
@@ -40,6 +50,10 @@ interface BoardAppearanceEditorProps {
 export function BoardAppearanceEditor({
   board,
   selectedCategory,
+  selectedClue,
+  selectionScope = 'tile',
+  selectedClueIds,
+  onSelectionScopeChange,
   onBoardChange,
   onApplyCategoryStyleToAll,
   embedded = false,
@@ -112,7 +126,7 @@ export function BoardAppearanceEditor({
   };
 
   const resetTheme = () => {
-    patchBoard((current) => ({ ...current, theme: createDefaultBoardTheme() }));
+    patchBoard((current) => resetAllBoardColors(current));
   };
 
   const applyPreset = (preset: BoardThemePreset) => {
@@ -270,14 +284,11 @@ export function BoardAppearanceEditor({
         )}
 
         {theme.background.type === 'solid' && (
-          <label className="color-field">
-            Color
-            <input
-              type="color"
-              value={theme.background.color}
-              onChange={(e) => updateBackground({ type: 'solid', color: e.target.value })}
-            />
-          </label>
+          <ColorPicker
+            label="Color"
+            value={theme.background.color}
+            onChange={(v) => updateBackground({ type: 'solid', color: v })}
+          />
         )}
 
         {theme.background.type === 'solid' && stashedImageBackground && (
@@ -350,6 +361,16 @@ export function BoardAppearanceEditor({
         <ColorPicker label="Category header text" value={theme.colors.categoryHeaderText} onChange={(v) => updateColors('categoryHeaderText', v)} />
       </section>
 
+      <TileOverrideColorSection
+        board={board}
+        selectedCategory={selectedCategory ?? null}
+        selectedClue={selectedClue ?? null}
+        selectionScope={selectionScope}
+        selectedClueIds={selectedClueIds ?? (selectedClue ? [selectedClue.id] : [])}
+        onSelectionScopeChange={onSelectionScopeChange}
+        onBoardChange={onBoardChange}
+      />
+
       <section className="appearance-section">
         <h4>Dashboard card preview</h4>
         <p className="field-hint">
@@ -409,8 +430,11 @@ export function BoardAppearanceEditor({
         <ColorPicker label="Top bar background" value={theme.colors.topBarBackground} onChange={(v) => updateColors('topBarBackground', v)} />
         <ColorPicker label="Footer background" value={theme.colors.footerBackground} onChange={(v) => updateColors('footerBackground', v)} />
         <button type="button" className="btn btn-sm" onClick={resetTheme}>
-          Reset to default
+          Reset all colors to default
         </button>
+        <p className="field-hint">
+          Restores the default theme and clears individual tile, row, column, and category header color overrides.
+        </p>
       </section>
 
       {selectedCategory && (
@@ -524,20 +548,140 @@ function BackgroundPreview({ background }: { background: BoardBackground }) {
   );
 }
 
-function ColorPicker({
-  label,
-  value,
-  onChange,
+function TileOverrideColorSection({
+  board,
+  selectedCategory,
+  selectedClue,
+  selectionScope,
+  selectedClueIds,
+  onSelectionScopeChange,
+  onBoardChange,
 }: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
+  board: Board;
+  selectedCategory: Category | null;
+  selectedClue: Clue | null;
+  selectionScope: TilePaintSelectionScope;
+  selectedClueIds: string[];
+  onSelectionScopeChange?: (scope: TilePaintSelectionScope) => void;
+  onBoardChange: (update: BoardUpdater) => void;
 }) {
-  const hex = value.startsWith('#') && value.length >= 7 ? value.slice(0, 7) : DEFAULT_BOARD_COLORS.tileBackground;
+  const theme = migrateBoardTheme(board.theme);
+  const resolved = selectedClue ? getClueTileStyle(selectedClue, board) : null;
+  const initial =
+    resolved?.hasOverride && resolved.tileBackground.startsWith('#')
+      ? resolved.tileBackground.slice(0, 7)
+      : theme.colors.tileBackground.startsWith('#')
+        ? theme.colors.tileBackground.slice(0, 7)
+        : DEFAULT_BOARD_COLORS.tileBackground;
+
+  const [draftColor, setDraftColor] = useState(initial);
+  useEffect(() => {
+    setDraftColor(initial);
+  }, [selectedClue?.id, initial]);
+
+  const rowIndex =
+    selectedCategory && selectedClue
+      ? selectedCategory.clues.findIndex((c) => c.id === selectedClue.id)
+      : -1;
+
+  const selectionCount = selectedClueIds.length;
+  const selectionLabel =
+    selectionScope === 'row'
+      ? `Row (${selectionCount} tiles)`
+      : selectionScope === 'column'
+        ? `Column (${selectionCount} tiles)`
+        : selectedCategory && selectedClue
+          ? `${selectedCategory.name} · ${selectedClue.value}`
+          : 'None';
+
   return (
-    <label className="color-field">
-      {label}
-      <input type="color" value={hex} onChange={(e) => onChange(e.target.value)} />
-    </label>
+    <section className="appearance-section">
+      <h4>Individual tile colors</h4>
+      <p className="field-hint">
+        Click a tile, use Row or Column to expand the selection, then apply a color.
+      </p>
+      {!selectedCategory || !selectedClue ? (
+        <p className="field-hint">Select a tile in the preview to paint it.</p>
+      ) : (
+        <>
+          <p className="field-hint">Selected: {selectionLabel}</p>
+          <div className="appearance-actions">
+            <button
+              type="button"
+              className={`btn btn-sm${selectionScope === 'tile' ? ' btn-primary' : ''}`}
+              aria-pressed={selectionScope === 'tile'}
+              onClick={() => onSelectionScopeChange?.('tile')}
+            >
+              This tile
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm${selectionScope === 'row' ? ' btn-primary' : ''}`}
+              aria-pressed={selectionScope === 'row'}
+              disabled={rowIndex < 0}
+              onClick={() => onSelectionScopeChange?.('row')}
+            >
+              Row
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm${selectionScope === 'column' ? ' btn-primary' : ''}`}
+              aria-pressed={selectionScope === 'column'}
+              onClick={() => onSelectionScopeChange?.('column')}
+            >
+              Column
+            </button>
+          </div>
+          <div className="tile-override-row">
+            <ColorPicker
+              key={selectedClue.id}
+              label="Color"
+              value={draftColor}
+              onChange={setDraftColor}
+            />
+            <div className="appearance-actions">
+              <button
+                type="button"
+                className="btn btn-sm btn-primary"
+                onClick={() =>
+                  onBoardChange((b) =>
+                    applyTileColorsToClueIds(b, selectedClueIds, draftColor),
+                  )
+                }
+              >
+                Apply color
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm"
+                onClick={() =>
+                  onBoardChange((b) =>
+                    applyTileColorsToClueIds(b, selectedClueIds, null),
+                  )
+                }
+              >
+                Reset selected tiles
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+      <div className="appearance-actions">
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => onBoardChange((b) => clearAllTileColors(b))}
+        >
+          Clear all tile colors
+        </button>
+        <button
+          type="button"
+          className="btn btn-sm"
+          onClick={() => onBoardChange((b) => resetAllBoardColors(b))}
+        >
+          Reset all colors to default
+        </button>
+      </div>
+    </section>
   );
 }

@@ -80,6 +80,12 @@
   margin-top: 0.5rem;
 }
 
+.tile-override-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
 .appearance-upload-label {
   display: inline-flex;
   align-items: center;
